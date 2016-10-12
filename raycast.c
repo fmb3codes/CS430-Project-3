@@ -1,6 +1,6 @@
 //
 //  raycaster.c
-//  CS430 Project 2
+//  CS430 Project 3
 //
 //  Frankie Berry
 //
@@ -43,7 +43,7 @@ double sqr(double v); // squares the given double value
 
 // object struct typedef'd as Object intended to hold any of the specified objects in the given scene (.json) file
 typedef struct {
-  int kind; // 0 = camera, 1 = sphere, 2 = plane
+  int kind; // 0 = camera, 1 = sphere, 2 = plane, 3 = light
   double color[3]; // potentially remove here and add below
   union {
     struct {
@@ -52,14 +52,28 @@ typedef struct {
     } camera;
     struct {
       //double color[3];
+	  double diffuse_color[3];
+	  double specular_color[3];
       double position[3];
       double radius;
     } sphere;
     struct {
       //double color[3];
+	  double diffuse_color[3];
+	  double specular_color[3];
 	  double position[3];
 	  double normal[3];
     } plane;
+    struct {
+      //double color[3];
+	  double color[3];
+	  double position[3];
+	  double direction[3];
+	  double radial_a2;
+	  double radial_a1;
+	  double radial_a0;
+	  double angular_a0;
+    } light;
   };
 } Object;
 
@@ -157,9 +171,9 @@ int main(int argc, char** argv)
   
 	read_scene(input_file); // parses json input file
 	
-	raycasting(); // executes raycasting based on information read in from json file in conjunction with the global image_buffer which handles the image pixels
+	//raycasting(); // executes raycasting based on information read in from json file in conjunction with the global image_buffer which handles the image pixels
  
-	write_image_data(output_file); // writes "colored" pixels to ppm file after raycasting
+	//write_image_data(output_file); // writes "colored" pixels to ppm file after raycasting
   
 	return 0;
 }
@@ -204,12 +218,21 @@ void read_scene(char* filename)
 	  // error-checking variables to make sure enough UNIQUE fields have been read-in for object after it has been parsed.
 	  int camera_height_read = 0;
 	  int camera_width_read = 0;
-	  int sphere_color_read = 0;
+	  int sphere_diff_color_read = 0;
+	  int sphere_spec_color_read = 0;
 	  int sphere_position_read = 0;
 	  int sphere_radius_read = 0;
-	  int plane_color_read = 0;
+	  int plane_diff_color_read = 0;
+	  int plane_spec_color_read = 0;
 	  int plane_position_read = 0;
 	  int plane_normal_read = 0;
+	  int light_color_read = 0;
+	  int light_position_read = 0;
+	  int light_direction_read = 0;
+	  int light_rad2_read = 0;
+	  int light_rad1_read = 0;
+	  int light_rad0_read = 0;
+	  int light_ang0_read = 0;
 	  
       skip_ws(json);
     
@@ -250,6 +273,13 @@ void read_scene(char* filename)
 
 		  
       } 
+	  else if (strcmp(value, "light") == 0) // allocates memory for light object and stores the "kind" as corresponding number
+	  {
+		  objects[i] = malloc(sizeof(Object));
+		  objects[i]->kind = 3;
+
+		  
+      } 
 	  else // unknown object was read in so an error is displayed
 	  {
 		fprintf(stderr, "Error: Unknown object type, \"%s\", on line number %d.\n", value, line);
@@ -277,30 +307,59 @@ void read_scene(char* filename)
 		}
 		else if(objects[i]->kind == 1)
 		{
-			if(sphere_color_read != 1 ||  sphere_position_read != 1 || sphere_radius_read != 1)
+			if(sphere_diff_color_read != 1 ||  sphere_spec_color_read != 1 ||  sphere_position_read != 1 || sphere_radius_read != 1)
 			{
-				fprintf(stderr, "Error: Object #%d (0-indexed) is a sphere which should have three unique fields: color/position/radius\n", i);
+				fprintf(stderr, "Error: Object #%d (0-indexed) is a sphere which should have four unique fields: diffuse_color/specular_color/position/radius\n", i);
 				exit(1);
 			}
 		}
 		else if(objects[i]->kind == 2)
 		{
-			if(plane_color_read != 1 ||  plane_position_read != 1 || plane_normal_read != 1)
+			if(plane_diff_color_read != 1 ||  plane_spec_color_read != 1 || plane_position_read != 1 || plane_normal_read != 1)
 			{
-				fprintf(stderr, "Error: Object #%d (0-indexed) is a plane which should have three unique fields: color/position/normal\n", i);
+				fprintf(stderr, "Error: Object #%d (0-indexed) is a plane which should have four unique fields: diffuse_color/specular_color/position/normal\n", i);
 				exit(1);
 			}
+		}
+		else if(objects[i]->kind == 3)
+		{
+			if(light_color_read != 1 ||  light_position_read != 1)
+			{
+				fprintf(stderr, "Error: Object #%d (0-indexed) is a light which should have at least these 2 unique fields: color/position\n", i);
+				exit(1);
+			}
+			else if(light_rad2_read == 1 && light_rad1_read == 0 && light_rad0_read == 0 && light_ang0_read == 0 && light_direction_read == 0) // light is diffuse so do nothing
+			{
+			}
+			else if(light_rad2_read == 1 && light_rad1_read == 1 && light_rad0_read == 1 && light_ang0_read == 1 && light_direction_read == 1) // light is specular so do nothing
+			{
+			}
+			else // invalid number of fields read in for either type of light
+			{
+					fprintf(stderr, "Error: Object #%d (0-indexed) is a light which should be either specular/diffuse. (ie have fields: direction/radial-a2/radial-a1/radial-a0/angular-a0 or radial-a2)\n", i);
+					exit(1);
+			}
+
 		}
 	    i++; // increments object iterator
 		// resets all error-checking variables back to 0
 		int camera_height_read = 0;
 		int camera_width_read = 0;
-		int sphere_color_read = 0;
+		int sphere_diff_color_read = 0;
+		int sphere_spec_color_read = 0;
 		int sphere_position_read = 0;
 		int sphere_radius_read = 0;
-		int plane_color_read = 0;
+		int plane_diff_color_read = 0;
+		int plane_spec_color_read = 0;
 		int plane_position_read = 0;
 		int plane_normal_read = 0;
+		int light_color_read = 0;
+		int light_position_read = 0;
+		int light_direction_read = 0;
+		int light_rad2_read = 0;
+		int light_rad1_read = 0;
+		int light_rad0_read = 0;
+		int light_ang0_read = 0;
 	    break;
 	  } 
 	  else if (c == ',') 
@@ -310,10 +369,14 @@ void read_scene(char* filename)
 	  char* key = next_string(json);
 	  skip_ws(json);
 	  expect_c(json, ':');
-	  skip_ws(json);
+	  skip_ws(json);  
 	  if ((strcmp(key, "width") == 0) || 
-	      (strcmp(key, "height") == 0) || // evaluates if field is either a width/height/radius
-	      (strcmp(key, "radius") == 0)) 
+	      (strcmp(key, "height") == 0) || // evaluates if field is either a width/height/radius/radial-a2/radial-a1/radial-a0/angular-a0
+	      (strcmp(key, "radius") == 0) ||
+		  (strcmp(key, "radial-a2") == 0) || 
+	      (strcmp(key, "radial-a1") == 0) ||
+		  (strcmp(key, "radial-a0") == 0) ||
+		  (strcmp(key, "angular-a0") == 0))
 	  {
 	    double value = next_number(json);
 		if(strcmp(key, "width") == 0 && objects[i]->kind == 0) // evaluates only if key is width and current object is a camera
@@ -338,19 +401,83 @@ void read_scene(char* filename)
 			objects[i]->sphere.radius = value;
 			sphere_radius_read++; // increments error checking variable for sphere radius field being read
 		}
+		
+		// REDO VALUE ERROR CHECKING IF NEEDED, REMOVE AT THE VERY LEAST
+		else if(strcmp(key, "radial-a2") == 0 && objects[i]-> kind == 3) // evaluates only if key is radial-a2 and current object is a light
+		{
+			if(value <= 0) // error check to make sure a negative radius isn't read in from json file
+			{
+				fprintf(stderr, "Error: Sphere radius should not be less than or equal to 0. Violation found on line number %d.\n", line);
+				exit(1);
+			}
+			objects[i]->light.radial_a2 = value;
+			light_rad2_read++; // increments error checking variable for sphere radius field being read
+		}
+		else if(strcmp(key, "radial-a1") == 0 && objects[i]-> kind == 3) // evaluates only if key is radial-a1 and current object is a light
+		{
+			if(value <= 0) // error check to make sure a negative radius isn't read in from json file
+			{
+				fprintf(stderr, "Error: Sphere radius should not be less than or equal to 0. Violation found on line number %d.\n", line);
+				exit(1);
+			}
+			objects[i]->light.radial_a1 = value;
+			light_rad1_read++; // increments error checking variable for sphere radius field being read
+		}
+		else if(strcmp(key, "radial-a0") == 0 && objects[i]-> kind == 3) // evaluates only if key is radial-a0 and current object is a light
+		{
+			if(value <= 0) // error check to make sure a negative radius isn't read in from json file
+			{
+				fprintf(stderr, "Error: Sphere radius should not be less than or equal to 0. Violation found on line number %d.\n", line);
+				exit(1);
+			}
+			objects[i]->light.radial_a0 = value;
+			light_rad0_read++; // increments error checking variable for sphere radius field being read
+		}
+		else if(strcmp(key, "angular-a0") == 0 && objects[i]-> kind == 3) // evaluates only if key is angular-a0 and current object is a light
+		{
+			if(value <= 0) // error check to make sure a negative radius isn't read in from json file
+			{
+				fprintf(stderr, "Error: Sphere radius should not be less than or equal to 0. Violation found on line number %d.\n", line);
+				exit(1);
+			}
+			objects[i]->light.angular_a0 = value;
+			light_ang0_read++; // increments error checking variable for sphere radius field being read
+		}		
+		// REMEMBER TO REDO ERROR CHECKING HERE
+		
 		else // after key was identified as width/height/radius, object type is unknown so display an error
 		{
-			fprintf(stderr, "Error: Only cameras should have width/height and spheres have radius. Violation found on line number %d.\n", line);
+			fprintf(stderr, "Error: Only cameras should have width/height, spheres have radius, and lights have radial-a2/radial-a1/radial-a0/angular-a0. Violation found on line number %d.\n", line);
             exit(1);
 		}
 		
 	  } 
 	  else if ((strcmp(key, "color") == 0) ||
+		     (strcmp(key, "diffuse_color") == 0) ||
+		     (strcmp(key, "specular_color") == 0) ||
 		     (strcmp(key, "position") == 0) || // evaluates if field is either a color/position/normal
-		     (strcmp(key, "normal") == 0)) 
+		     (strcmp(key, "normal") == 0) ||
+			 (strcmp(key, "direction") == 0))
 	  { 
 	    double* value = next_vector(json);
-		if((strcmp(key, "color") == 0 && objects[i]->kind == 1) || (strcmp(key, "color") == 0 && objects[i]->kind == 2)) // evaluates only if key is color and current object is a sphere or plane
+		if(strcmp(key, "color") == 0 && objects[i]->kind == 3) // evaluates only if key is color and current object is a light
+		{
+			int j = 0; // iterator variable for error-checking
+			for(j = 0; j < 3; j+=1) // error checking for loop to make sure color values from object are less than 0
+			{
+				if(value[j] < 0) // assuming color value must be less than 0
+				{
+					fprintf(stderr, "Error: Color values must not be less than 0. Violation found on line number %d.\n", line); // CHECK ERROR CHECKING ON THIS
+					exit(1);
+				}
+			}
+			objects[i]->light.color[0] = value[0];
+			objects[i]->light.color[1] = value[1]; // assigns color values from value vector to current object 
+			objects[i]->light.color[2] = value[2];
+			light_color_read++;
+			
+		}
+		else if((strcmp(key, "diffuse_color") == 0 && objects[i]->kind == 1) || (strcmp(key, "diffuse_color") == 0 && objects[i]->kind == 2)) // evaluates only if key is diffuse_color and current object is a sphere or plane
 		{
 			int j = 0; // iterator variable for error-checking
 			for(j = 0; j < 3; j+=1) // error checking for loop to make sure color values from object are between 0 and 1 (inclusive)
@@ -361,19 +488,48 @@ void read_scene(char* filename)
 					exit(1);
 				}
 			}
-			objects[i]->color[0] = value[0];
-			objects[i]->color[1] = value[1]; // assigns color values from value vector to current object 
-			objects[i]->color[2] = value[2];
 			if(objects[i]->kind == 1)
 			{
-				sphere_color_read++; // increments error checking variable for sphere color field being read
+				objects[i]->sphere.diffuse_color[0] = value[0];
+				objects[i]->sphere.diffuse_color[1] = value[1]; // assigns color values from value vector to current object 
+				objects[i]->sphere.diffuse_color[2] = value[2];
+				sphere_diff_color_read++; // increments error checking variable for sphere color field being read
 			}
 			else if(objects[i]->kind == 2)
 			{
-				plane_color_read++; // increments error checking variable for plane color field being read
+				objects[i]->plane.diffuse_color[0] = value[0];
+				objects[i]->plane.diffuse_color[1] = value[1]; // assigns color values from value vector to current object 
+				objects[i]->plane.diffuse_color[2] = value[2];
+				plane_diff_color_read++; // increments error checking variable for plane color field being read
 			}
 		}
-		else if((strcmp(key, "position") == 0 && objects[i]->kind == 1) || ((strcmp(key, "position") == 0 && objects[i]->kind == 2))) // evaluates only if key is position and current object is a sphere or plane
+		else if((strcmp(key, "specular_color") == 0 && objects[i]->kind == 1) || (strcmp(key, "specular_color") == 0 && objects[i]->kind == 2)) // evaluates only if key is diffuse_color and current object is a sphere or plane
+		{
+			int j = 0; // iterator variable for error-checking
+			for(j = 0; j < 3; j+=1) // error checking for loop to make sure color values from object are between 0 and 1 (inclusive)
+			{
+				if(value[j] < 0 || value[j] > 1) // assuming color value must be between 0 and 1 (inclusive) due to example json file given along with corresponding ppm output file indicating so
+				{
+					fprintf(stderr, "Error: Color values should be between 0 and 1 (inclusive). Violation found on line number %d.\n", line);
+					exit(1);
+				}
+			}
+			if(objects[i]->kind == 1)
+			{
+				objects[i]->sphere.specular_color[0] = value[0];
+				objects[i]->sphere.specular_color[1] = value[1]; // assigns color values from value vector to current object 
+				objects[i]->sphere.specular_color[2] = value[2];
+				sphere_spec_color_read++; // increments error checking variable for sphere color field being read
+			}
+			else if(objects[i]->kind == 2)
+			{
+				objects[i]->plane.specular_color[0] = value[0];
+				objects[i]->plane.specular_color[1] = value[1]; // assigns color values from value vector to current object 
+				objects[i]->plane.specular_color[2] = value[2];
+				plane_spec_color_read++; // increments error checking variable for plane color field being read
+			}
+		}
+		else if((strcmp(key, "position") == 0 && objects[i]->kind == 1) || ((strcmp(key, "position") == 0 && objects[i]->kind == 2)) || ((strcmp(key, "position") == 0 && objects[i]->kind == 3))) // evaluates only if key is position and current object is a sphere or plane or light
 		{
 			if(objects[i]->kind == 1)
 			{
@@ -389,11 +545,25 @@ void read_scene(char* filename)
 				objects[i]->plane.position[2] = value[2];
 				plane_position_read++; // increments error checking variable for plane position field being read
 			}
-			else // Evaluates if there is a mismatched object field with sphere/plane and position, but should never happen
+			else if(objects[i]->kind == 3)
+			{
+				objects[i]->light.position[0] = value[0];
+				objects[i]->light.position[1] = value[1]; // assigns position values from value vector to current light object 
+				objects[i]->light.position[2] = value[2];
+				light_position_read++; // increments error checking variable for light position field being read
+			}
+			else // Evaluates if there is a mismatched object field with sphere/plane/light and position, but should never happen
 			{
 				fprintf(stderr, "Error: Mismatched object field, on line %d.\n", key, line);
 				exit(1);
 			}
+		}
+		else if(strcmp(key, "direction") == 0 && objects[i]->kind == 3) // evaluates only if key is direction and current object is a light
+		{
+			objects[i]->light.direction[0] = value[0];
+			objects[i]->light.direction[1] = value[1]; // assigns normal values from value vector to current light object 
+			objects[i]->light.direction[2] = value[2];
+			light_direction_read++; // increments error checking variable for light direction field being read
 		}
 		else if(strcmp(key, "normal") == 0 && objects[i]->kind == 2) // evaluates only if key is normal and current object is a plane
 		{
@@ -402,9 +572,9 @@ void read_scene(char* filename)
 			objects[i]->plane.normal[2] = value[2];
 			plane_normal_read++; // increments error checking variable for plane normal field being read
 		}
-		else // after key was identified as color/position/normal, object type is unknown so display an error
+		else // after key was identified as color/diffuse_color/specular_color/position/direction/normal, object type is unknown so display an error
 		{
-			fprintf(stderr, "Error: Only spheres and planes should have color/position and only planes should have a normal. Violation found on line number %d.\n", line);
+			fprintf(stderr, "Error: Only spheres/planes/lights have positions, spheres and planes have specular/diffuse colors, lights have colors and direction, and only planes have a normal. Violation found on line number %d.\n", line);
             exit(1);
 		}
 	  } 
