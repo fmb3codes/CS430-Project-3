@@ -41,6 +41,9 @@ void normalize(double* v); // normalizes the given vector
 double sqr(double v); // squares the given double value
 
 
+void print_objects(); // testing helper function
+
+
 // object struct typedef'd as Object intended to hold any of the specified objects in the given scene (.json) file
 typedef struct {
   int kind; // 0 = camera, 1 = sphere, 2 = plane, 3 = light
@@ -73,6 +76,7 @@ typedef struct {
 	  double radial_a1;
 	  double radial_a0;
 	  double angular_a0;
+	  // add flag for different light type and set after fully reading in object?
     } light;
   };
 } Object;
@@ -171,9 +175,14 @@ int main(int argc, char** argv)
   
 	read_scene(input_file); // parses json input file
 	
+	print_objects();
+	
 	//raycasting(); // executes raycasting based on information read in from json file in conjunction with the global image_buffer which handles the image pixels
  
 	//write_image_data(output_file); // writes "colored" pixels to ppm file after raycasting
+	
+	
+	// POTENTIALLY DO ERROR CHECKING ON RADIAL/etc VALUES
   
 	return 0;
 }
@@ -906,4 +915,60 @@ void normalize(double* v)
 double sqr(double v) 
 {
   return v*v;
+}
+
+// helper function
+void print_objects()
+{
+	int i = 0;
+	while(objects[i] != NULL)
+	{
+			if(objects[i]->kind == 0)
+			{
+				printf("#%d object is a camera\n", i);
+				printf("Camera width is: %lf\n", objects[i]->camera.width);
+				printf("Camera height is: %lf\n", objects[i]->camera.height);
+				printf("-------------------------------------------------------\n");
+				i++;
+			}
+			else if(objects[i]->kind == 1)
+			{
+				printf("#%d object is a sphere\n", i);
+				printf("Sphere diffuse color is: [%lf, %lf, %lf]\n", objects[i]->sphere.diffuse_color[0], objects[i]->sphere.diffuse_color[1], objects[i]->sphere.diffuse_color[2]);
+				printf("Sphere specular color is: [%lf, %lf, %lf]\n", objects[i]->sphere.specular_color[0], objects[i]->sphere.specular_color[1], objects[i]->sphere.specular_color[2]);
+				printf("Sphere position is: [%lf, %lf, %lf]\n", objects[i]->sphere.position[0], objects[i]->sphere.position[1], objects[i]->sphere.position[2]);
+				printf("Sphere radius is: %lf\n", objects[i]->sphere.radius);
+				printf("-------------------------------------------------------\n");
+				i++;
+			}
+			else if(objects[i]->kind == 2)
+			{
+				printf("#%d object is a plane\n", i);
+				printf("Plane diffuse color is: [%lf, %lf, %lf]\n", objects[i]->plane.diffuse_color[0], objects[i]->plane.diffuse_color[1], objects[i]->plane.diffuse_color[2]);
+				printf("Plane specular color is: [%lf, %lf, %lf]\n", objects[i]->plane.specular_color[0], objects[i]->plane.specular_color[1], objects[i]->plane.specular_color[2]);
+				printf("Plane position is: [%lf, %lf, %lf]\n", objects[i]->plane.position[0], objects[i]->plane.position[1], objects[i]->plane.position[2]);
+				printf("Plane normal is: [%lf, %lf, %lf]\n", objects[i]->plane.normal[0], objects[i]->plane.normal[1], objects[i]->plane.normal[2]);
+				printf("-------------------------------------------------------\n");
+				i++;
+			}
+			else if(objects[i]->kind == 3)
+			{
+				printf("#%d object is a light\n", i);
+				printf("Light color is: [%lf, %lf, %lf]\n", objects[i]->light.color[0], objects[i]->light.color[1], objects[i]->light.color[2]);
+				printf("Light position is: [%lf, %lf, %lf]\n", objects[i]->light.position[0], objects[i]->light.position[1], objects[i]->light.position[2]);
+				printf("Light direction is: [%lf, %lf, %lf]\n", objects[i]->light.direction[0], objects[i]->light.direction[1], objects[i]->light.direction[2]);
+				printf("Light radial-a2 is: %lf\n", objects[i]->light.radial_a2);
+				printf("Light radial-a1 is: %lf\n", objects[i]->light.radial_a1);
+				printf("Light radial-a0 is: %lf\n", objects[i]->light.radial_a0);
+				printf("Light angular-a0 is: %lf\n", objects[i]->light.angular_a0);
+				printf("-------------------------------------------------------\n");
+				i++;
+			}
+			else
+			{
+				fprintf(stderr, "Error: Unrecognized object.\n");
+				exit(1);
+			}
+
+	}
 }
