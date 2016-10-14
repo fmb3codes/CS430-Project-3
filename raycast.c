@@ -694,13 +694,28 @@ void raycasting()
 						}
 					}
 					if (best_t > 0 && best_t != INFINITY) { // after objects have been parsed through, evaluates if there was a dominant intersection
-						current_pixel.r = objects[best_i]->color[0] * 255;
-						current_pixel.g = objects[best_i]->color[1] * 255; // magnifies the color value between 0 and 1 (inclusive) by 255 to obtain the proper RGB color value
-						current_pixel.b = objects[best_i]->color[2] * 255;
+						
+						if(objects[best_i].kind == 1) // sphere
+						{
+							current_pixel.r = objects[best_i]->sphere.diffuse_color[0] * 255;
+							current_pixel.g = objects[best_i]->sphere.diffuse_color[1] * 255; // magnifies the color value between 0 and 1 (inclusive) by 255 to obtain the proper RGB color value
+							current_pixel.b = objects[best_i]->sphere.diffuse_color[2] * 255;
+						}
+						else if(objects[best_i].kind == 2) // plane
+						{
+							current_pixel.r = objects[best_i]->plane.diffuse_color[0] * 255;
+							current_pixel.g = objects[best_i]->plane.diffuse_color[1] * 255; // magnifies the color value between 0 and 1 (inclusive) by 255 to obtain the proper RGB color value
+							current_pixel.b = objects[best_i]->plane.diffuse_color[2] * 255;
+						}
+						else if(objects[best_i].kind == 3) // light
+						{ // need spec or diff?
+							
+						}
+						
 						
 						*temp_ptr = current_pixel; // sets current image_data struct in temp_ptr to current_pixel colored from object 
 						temp_ptr++; // increments temp_ptr to point to next image_data struct in global buffer
-		
+						
 						current_pixel.r = 0;
 						current_pixel.g = 0; // resets current pixel RGB values to 0 after coloring current pixel
 						current_pixel.b = 0;
