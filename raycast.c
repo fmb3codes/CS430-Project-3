@@ -725,6 +725,7 @@ void raycasting()
 						// doing shadow test
 						double Ron[3] = {0, 0, 0}; // Initializes new origin ray to the assumed 0, 0, 0 position
 						double Rdn[3] = {0, 0, 0}; // Initializes new direction of ray to 0, 0, 0 which will be changed
+						
 							
 						for(int j =  0; lights[j] != 0; j+=1)
 						{
@@ -735,6 +736,8 @@ void raycasting()
 							Rdn[0] = lights[j]->light.position[0] - Ron[0];
 							Rdn[1] = lights[j]->light.position[1] - Ron[1];
 							Rdn[2] = lights[j]->light.position[2] - Ron[2];
+							
+							double distance_to_light = sqrt(sqr(Rdn[0]) + sqr(Rdn[1]) + sqr(Rdn[2]));
 							
 							double new_best_t = INFINITY;
 							int best_s = 0;
@@ -770,6 +773,11 @@ void raycasting()
 									new_best_t = new_t; 
 									best_s = k;
 								}
+								if (new_best_t > distance_to_light)
+								{
+									// set best_s = 0?
+									continue;
+								}
 								
 								// IF NEW_BEST_T > DISTANCE_TO_LIGHT -> CONTINUE
 							}
@@ -792,7 +800,7 @@ void raycasting()
 									l[1] = Rdn[1];
 									l[2] = Rdn[2];
 									
-									//
+									// calculating reflection variable
 									double temp_scalar = 2.0 * (n[0]*l[0] + n[1]*l[1] + n[2]*l[2]);
 									double temp_vector[3];
 									temp_vector[0] = n[0] * temp_scalar;
@@ -840,7 +848,7 @@ void raycasting()
 									l[1] = Rdn[1];
 									l[2] = Rdn[2];
 									
-									//
+									// calculating reflection variable
 									double temp_scalar = 2.0 * (n[0]*l[0] + n[1]*l[1] + n[2]*l[2]);
 									double temp_vector[3];
 									temp_vector[0] = n[0] * temp_scalar;
