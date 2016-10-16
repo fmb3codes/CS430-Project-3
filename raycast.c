@@ -41,7 +41,6 @@ void normalize(double* v); // normalizes the given vector
 double sqr(double v); // squares the given double value
 
 
-void print_objects(); // testing helper function
 
 
 // object struct typedef'd as Object intended to hold any of the specified objects in the given scene (.json) file
@@ -80,6 +79,10 @@ typedef struct {
     } light;
   };
 } Object;
+
+
+void print_objects(Object** objects); // testing helper function REMOVE?
+
 
 // header_data buffer which is intended to contain all relevant header information of ppm file
 typedef struct header_data 
@@ -175,9 +178,9 @@ int main(int argc, char** argv)
   
 	read_scene(input_file); // parses json input file
 	
-	print_objects();
+	print_objects(objects);
 	
-	//raycasting(); // executes raycasting based on information read in from json file in conjunction with the global image_buffer which handles the image pixels
+	raycasting(); // executes raycasting based on information read in from json file in conjunction with the global image_buffer which handles the image pixels
  
 	//write_image_data(output_file); // writes "colored" pixels to ppm file after raycasting
 	
@@ -636,6 +639,22 @@ void raycasting()
 		current_pixel.g = 0; // initializes current pixel RGB values to 0 (black)
 		current_pixel.b = 0;
 		
+		
+		Object** lights;
+		lights = malloc(sizeof(Object) * 129);
+		int light_counter = 0;
+		
+		for(int k = 0; objects[k] != 0; k+=1)
+		{
+			if(objects[k]->kind == 3)
+			{
+				lights[light_counter++] = objects[k];
+			}
+		}
+		lights[light_counter] == NULL;
+		
+		print_objects(lights);
+		
 		// sets cx and cy values of camera (assumed to be at 0, 0
 		double cx = 0;
 		double cy = 0;
@@ -652,6 +671,7 @@ void raycasting()
 		double Rd[3] = {0, 0, 0}; // Initializes direction of ray to 0, 0, 0 which will be changed
 		double ray[3] = {0, 0, 1}; // Initializes temporary ray with 0, 0 for the x and y values and 1 for the assumed z value position
 		
+		exit(1);
 		
 		for (int y = 0; y < M; y += 1) {
 			ray[1] = (cy - (glob_height/2) + pixheight * (y + 0.5)); // calculates y-position of ray and stores accordingly
@@ -694,6 +714,21 @@ void raycasting()
 						}
 					}
 					if (best_t > 0 && best_t != INFINITY) { // after objects have been parsed through, evaluates if there was a dominant intersection
+						
+						for(int j =  0; objects[j] != 0; j+=1)
+						{
+							
+						}
+						
+						
+						
+						
+						
+						
+						
+						
+						
+						
 						
 						if(objects[best_i]->kind == 1) // sphere
 						{
@@ -933,7 +968,7 @@ double sqr(double v)
 }
 
 // helper function
-void print_objects()
+void print_objects(Object** objects)
 {
 	int i = 0;
 	while(objects[i] != NULL)
