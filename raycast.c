@@ -40,6 +40,7 @@ void normalize(double* v); // normalizes the given vector
 
 double sqr(double v); // squares the given double value
 
+double clamp (double value); // checks color range of value
 
 
 
@@ -1181,4 +1182,15 @@ void print_objects(Object** objects)
 			}
 
 	}
+}
+
+// clamping helper function to make sure color isn't outside of 0-1 range (inclusive)
+double clamp (double value)
+{
+    if (value < 0)
+        return 0;
+    else if (value > 1)
+        return 1;
+    else
+        return value;
 }
