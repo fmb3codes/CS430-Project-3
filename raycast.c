@@ -772,13 +772,13 @@ void raycasting()
 								
 								// IF NEW_BEST_T > DISTANCE_TO_LIGHT -> CONTINUE
 							}
-							if(best_s == 0) // no closest shadow
+							if(best_s == 0) // no closest shadow (wouldn't be 0 since camera always first)
 							{ // N L R V
 								if(objects[best_i]->kind == 1) // determine necessary variables according to sphere fields
 								{
 									double n[3];
 									double l[3];
-									double r; // reflection of l
+									double r[3]; // reflection of l
 									double v[3];
 									double diffuse[3];
 									double specular[3];
@@ -790,6 +790,17 @@ void raycasting()
 									l[0] = Rdn[0];
 									l[1] = Rdn[1];
 									l[2] = Rdn[2];
+									
+									//
+									double temp_scalar = 2.0 * (n[0]*l[0] + n[1]*l[1] + n[2]*l[2]);
+									double temp_vector[3];
+									temp_vector[0] = n[0] * temp_scalar;
+									temp_vector[1] = n[1] * temp_scalar;
+									temp_vector[2] = n[2] * temp_scalar;
+									r[0] = l[0] - temp_vector[0];
+									r[1] = l[1] - temp_vector[1];
+									r[2] = l[2] - temp_vector[2];								
+									//
 									
 									v[0] = Rd[0];
 									v[1] = Rd[1];
@@ -815,7 +826,7 @@ void raycasting()
 								{
 									double n[3]; 
 									double l[3];
-									double r; // reflection of l
+									double r[3]; // reflection of l
 									double v[3];
 									double diffuse[3];
 									double specular[3];
@@ -827,6 +838,17 @@ void raycasting()
 									l[0] = Rdn[0];
 									l[1] = Rdn[1];
 									l[2] = Rdn[2];
+									
+									//
+									double temp_scalar = 2.0 * (n[0]*l[0] + n[1]*l[1] + n[2]*l[2]);
+									double temp_vector[3];
+									temp_vector[0] = n[0] * temp_scalar;
+									temp_vector[1] = n[1] * temp_scalar;
+									temp_vector[2] = n[2] * temp_scalar;
+									r[0] = l[0] - temp_vector[0];
+									r[1] = l[1] - temp_vector[1];
+									r[2] = l[2] - temp_vector[2];								
+									//
 									
 									v[0] = Rd[0];
 									v[1] = Rd[1];
