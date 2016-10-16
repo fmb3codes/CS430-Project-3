@@ -639,21 +639,23 @@ void raycasting()
 		current_pixel.g = 0; // initializes current pixel RGB values to 0 (black)
 		current_pixel.b = 0;
 		
-		
+		// block of code to create/facilitate a new Object array which will store only light objects for later use
 		Object** lights;
 		lights = malloc(sizeof(Object) * 129);
 		int light_counter = 0;
 		
-		for(int k = 0; objects[k] != 0; k+=1)
+		for(int l = 0; objects[l] != 0; l+=1)
 		{
-			if(objects[k]->kind == 3)
+			if(objects[l]->kind == 3)
 			{
-				lights[light_counter++] = objects[k];
+				lights[light_counter++] = objects[l];
 			}
 		}
 		lights[light_counter] == NULL;
 		
 		print_objects(lights);
+		// end of block of code for creating/filling new lights array
+		
 		
 		// sets cx and cy values of camera (assumed to be at 0, 0
 		double cx = 0;
@@ -703,6 +705,8 @@ void raycasting()
 														objects[i]->plane.normal);
 														
 							break;
+						case 3: // object is a light so break
+							break; 
 						default:
 							fprintf(stderr, "Error: Unrecognized object.\n"); // Error in case siwtch doesn't evaluate as a known object but should never happen
 							exit(1);
@@ -713,11 +717,142 @@ void raycasting()
 							best_i = i;
 						}
 					}
+					double color[3] = {0, 0, 0};
+					
 					if (best_t > 0 && best_t != INFINITY) { // after objects have been parsed through, evaluates if there was a dominant intersection
 						
-						for(int j =  0; objects[j] != 0; j+=1)
-						{
+						// doing shadow test
+						double Ron[3] = {0, 0, 0}; // Initializes new origin ray to the assumed 0, 0, 0 position
+						double Rdn[3] = {0, 0, 0}; // Initializes new direction of ray to 0, 0, 0 which will be changed
 							
+						for(int j =  0; lights[j] != 0; j+=1)
+						{
+							Ron[0] = best_t * Rd[0] + Ro[0];
+							Ron[1] = best_t * Rd[1] + Ro[1];
+							Ron[2] = best_t * Rd[2] * Ro[2];
+							
+							Rdn[0] = lights[j]->light.position[0] - Ron[0];
+							Rdn[1] = lights[j]->light.position[1] - Ron[1];
+							Rdn[2] = lights[j]->light.position[2] - Ron[2];
+							
+							double new_best_t = INFINITY;
+							int best_s = 0;
+							for(int k = 0; objects[k] != 0; k+=1)
+							{
+								if(objects[best_i] == objects[k])
+									continue;
+								double new_t = 0;
+								
+								switch(objects[k]->kind) { // switch statement used to check object type and intersection information accordingly
+								case 0: // object is a camera so break
+									break; 
+								case 1: // object is a sphere so calculate sphere intersection
+									new_t = sphere_intersection(Ron, Rdn,
+																objects[k]->sphere.position,
+																objects[k]->sphere.radius);	
+							
+									break;
+								case 2: // object is a plane so calculate plane intersection
+									new_t = plane_intersection(Ron, Rdn,
+																objects[k]->plane.position,
+																objects[k]->plane.normal);
+														
+									break;
+								case 3: // object is a light so break
+									break;
+								default:
+									fprintf(stderr, "Error: Unrecognized object.\n"); // Error in case siwtch doesn't evaluate as a known object but should never happen
+									exit(1);
+								}
+								if (new_t > 0 && new_t < new_best_t) // stores best_t if there's a dominant intersection. Also stores best_i to record current object index
+								{
+									new_best_t = new_t; 
+									best_s = k;
+								}
+								
+								// IF NEW_BEST_T > DISTANCE_TO_LIGHT -> CONTINUE
+							}
+							if(best_s == 0) // no closest shadow
+							{ // N L R V
+								if(objects[best_i]->kind == 1) // determine necessary variables according to sphere fields
+								{
+									double n[3];
+									double l[3];
+									double r; // reflection of l
+									double v[3];
+									double diffuse[3];
+									double specular[3];
+									
+									n[0] = Ron[0] - objects[best_i]->sphere.position[0];
+									n[1] = Ron[1] - objects[best_i]->sphere.position[1];
+									n[2] = Ron[2] - objects[best_i]->sphere.position[2];
+									
+									l[0] = Rdn[0];
+									l[1] = Rdn[1];
+									l[2] = Rdn[2];
+									
+									v[0] = Rd[0];
+									v[1] = Rd[1];
+									v[2] = Rd[2];
+									
+									diffuse[0] = objects[best_i]->sphere.diffuse_color[0];
+									diffuse[1] = objects[best_i]->sphere.diffuse_color[0];
+									diffuse[2] = objects[best_i]->sphere.diffuse_color[0];
+									
+									specular[0] = objects[best_i]->sphere.specular_color[0];
+									specular[1] = objects[best_i]->sphere.specular_color[0];
+									specular[2] = objects[best_i]->sphere.specular_color[0];
+									
+
+									
+									//color[0] +=
+									//color[1] +=
+									//color[2] +=
+									
+									
+								}
+								else if(objects[best_i]->kind == 2) // determine necessary variables according to plane fields
+								{
+									double n[3]; 
+									double l[3];
+									double r; // reflection of l
+									double v[3];
+									double diffuse[3];
+									double specular[3];
+									
+									n[0] = objects[best_i]->plane.normal[0];
+									n[1] = objects[best_i]->plane.normal[1];
+									n[2] = objects[best_i]->plane.normal[2];
+									
+									l[0] = Rdn[0];
+									l[1] = Rdn[1];
+									l[2] = Rdn[2];
+									
+									v[0] = Rd[0];
+									v[1] = Rd[1];
+									v[2] = Rd[2];
+									
+									diffuse[0] = objects[best_i]->plane.diffuse_color[0];
+									diffuse[1] = objects[best_i]->plane.diffuse_color[0];
+									diffuse[2] = objects[best_i]->plane.diffuse_color[0];
+									
+									specular[0] = objects[best_i]->plane.specular_color[0];
+									specular[1] = objects[best_i]->plane.specular_color[0];
+									specular[2] = objects[best_i]->plane.specular_color[0];
+									
+									
+									
+									//color[0] +=
+									//color[1] +=
+									//color[2] +=
+									
+									
+								}
+								
+							}
+						
+						
+						
 						}
 						
 						
@@ -729,7 +864,7 @@ void raycasting()
 						
 						
 						
-						
+						/*
 						if(objects[best_i]->kind == 1) // sphere
 						{
 							current_pixel.r = objects[best_i]->sphere.diffuse_color[0] * 255;
@@ -747,7 +882,10 @@ void raycasting()
 							
 						}
 						// potentially error check?
-						
+						*/
+						current_pixel.r = color[0];
+						current_pixel.g = color[1];
+						current_pixel.b = color[2];
 						*temp_ptr = current_pixel; // sets current image_data struct in temp_ptr to current_pixel colored from object 
 						temp_ptr++; // increments temp_ptr to point to next image_data struct in global buffer
 						
