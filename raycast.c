@@ -87,7 +87,7 @@ typedef struct {
 
 double frad(Object* light, double dl);
 
-double fang(Object* light);
+double fang(Object* light, double direction[3]);
 
 void print_objects(Object** objects); // testing helper function REMOVE?
 
@@ -459,7 +459,7 @@ void read_scene(char* filename)
 		{
 			if(value <= 0) // error check to make sure a negative radius isn't read in from json file
 			{
-				fprintf(stderr, "Error: Sphere radius should not be less than or equal to 0. Violation found on line number %d.\n", line);
+				fprintf(stderr, "Error: angular-a0 must be positive. Violation found on line number %d.\n", line);
 				exit(1);
 			}
 			objects[i]->light.angular_a0 = value;
@@ -836,12 +836,16 @@ void raycasting()
 									specular[1] = objects[best_i]->sphere.specular_color[0];
 									specular[2] = objects[best_i]->sphere.specular_color[0];
 									*/
-
+									double object_direction[3];
+									object_direction[0] = Rdn[0] * -1;
+									object_direction[1] = Rdn[1] * -1;
+									object_direction[2] = Rdn[2] * -1;
 									
+									double fang_val = fang(lights[j], object_direction);									
 									double frad_val = frad(lights[j], distance_to_light);
-									//color[0] += frad_val + (diffuse[0] + specular[0]) 
-									//color[1] += frad_val + (diffuse[1] + specular[1]) 
-									//color[2] += frad_val + (diffuse[2] + specular[2]) 
+									//color[0] += frad_val * fang_val * (diffuse[0] + specular[0]) 
+									//color[1] += frad_val * fang_val * (diffuse[1] + specular[1]) 
+									//color[2] += frad_val * fang_val * (diffuse[2] + specular[2]) 
 									
 									
 								}
@@ -889,11 +893,16 @@ void raycasting()
 									specular[1] = objects[best_i]->plane.specular_color[0];
 									specular[2] = objects[best_i]->plane.specular_color[0];
 									*/
+									double object_direction[3];
+									object_direction[0] = Rdn[0] * -1;
+									object_direction[1] = Rdn[1] * -1;
+									object_direction[2] = Rdn[2] * -1;
 									
+									double fang_val = fang(lights[j], object_direction);
 									double frad_val = frad(lights[j], distance_to_light);
-									//color[0] += frad_val + (diffuse[0] + specular[0]) 
-									//color[1] += frad_val + (diffuse[1] + specular[1]) 
-									//color[2] += frad_val + (diffuse[2] + specular[2]) 
+									//color[0] += frad_val * fang_val * (diffuse[0] + specular[0]) 
+									//color[1] += frad_val * fang_val * (diffuse[1] + specular[1]) 
+									//color[2] += frad_val * fang_val * (diffuse[2] + specular[2]) 
 									
 									
 								}
@@ -1238,10 +1247,13 @@ double frad(Object* light, double dl)
 	return return_value;
 }
 
-double fang(Object* light)
+double fang(Object* light, double direction[3])
 {
 	if(light->light.kind_light == 0) // not spot light so return 1
 		return 1.0;
+		
+	double v0_vl = (light->light.direction[0] * direction[0]) + (light->light.direction[1] * direction[1]) +  (light->light.direction[2] * direction[2]);
+	return pow(v0_vl, light->light.angular_a0);
 }
 
 // potentially change output type in signature?
