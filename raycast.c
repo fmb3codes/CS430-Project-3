@@ -190,9 +190,9 @@ int main(int argc, char** argv)
 	
 	raycasting(); // executes raycasting based on information read in from json file in conjunction with the global image_buffer which handles the image pixels
  
-	//write_image_data(output_file); // writes "colored" pixels to ppm file after raycasting
+	write_image_data(output_file); // writes "colored" pixels to ppm file after raycasting
 	
-	
+	// ACCOUNT FOR NO LIGHT IN JSON FILE?
 	// POTENTIALLY DO ERROR CHECKING ON RADIAL/etc VALUES
   
 	return 0;
@@ -683,7 +683,7 @@ void raycasting()
 		double Rd[3] = {0, 0, 0}; // Initializes direction of ray to 0, 0, 0 which will be changed
 		double ray[3] = {0, 0, 1}; // Initializes temporary ray with 0, 0 for the x and y values and 1 for the assumed z value position
 		
-		exit(1);
+		// exit(1); testing
 		
 		for (int y = 0; y < M; y += 1) {
 			ray[1] = (cy - (glob_height/2) + pixheight * (y + 0.5)); // calculates y-position of ray and stores accordingly
@@ -694,9 +694,12 @@ void raycasting()
 				Rd[1] = ray[1];
 				Rd[2] = ray[2];
 				normalize(Rd); // normalizes the Rd vector
+				
+				double color[3] = {0, 0, 0};
 
 					double best_t = INFINITY;
 					int best_i = 0;
+					//double t = 0;
 					for (int i=0; objects[i] != 0; i += 1) { // iterates through objects
 						double t = 0; // sets t value to 0 before evaluating objects
 
@@ -727,46 +730,48 @@ void raycasting()
 							best_i = i;
 						}
 					}
-					double color[3] = {0, 0, 0};
 					
-					if (best_t > 0 && best_t != INFINITY) { // after objects have been parsed through, evaluates if there was a dominant intersection
-						
-						// doing shadow test
-						double Ron[3] = {0, 0, 0}; // Initializes new origin ray to the assumed 0, 0, 0 position
-						double Rdn[3] = {0, 0, 0}; // Initializes new direction of ray to 0, 0, 0 which will be changed
-						
+					if (best_t > 0 && best_t != INFINITY) {
+					double Ron[3] = {0, 0, 0}; // Initializes new origin ray to the assumed 0, 0, 0 position
+					double Rdn[3] = {0, 0, 0}; // Initializes new direction of ray to 0, 0, 0 which will be changed
 							
-						for(int j =  0; lights[j] != 0; j+=1)
-						{
+						// DO LIGHT CHECK HERE?
+						
 							Ron[0] = best_t * Rd[0] + Ro[0];
 							Ron[1] = best_t * Rd[1] + Ro[1];
-							Ron[2] = best_t * Rd[2] * Ro[2];
-							
+							Ron[2] = best_t * Rd[2] + Ro[2];
+						
+						for(int j =  0; lights[j] != 0; j+=1)
+						{							
 							Rdn[0] = lights[j]->light.position[0] - Ron[0];
 							Rdn[1] = lights[j]->light.position[1] - Ron[1];
 							Rdn[2] = lights[j]->light.position[2] - Ron[2];
+							printf("Rdn before:  [%lf %lf %lf]\n", Rdn[0], Rdn[1], Rdn[2]);
+							normalize(Rdn);
+							printf("Rdn after:  [%lf %lf %lf]\n", Rdn[0], Rdn[1], Rdn[2]);
 							
 							double distance_to_light = sqrt(sqr(Rdn[0]) + sqr(Rdn[1]) + sqr(Rdn[2]));
 							
 							double new_best_t = INFINITY;
-							int best_s = 0;
+							int best_s = -1;
 							for(int k = 0; objects[k] != 0; k+=1)
 							{
 								if(objects[best_i] == objects[k])
 									continue;
-								double new_t = 0;
+								//double new_t = 0;
+								double t = 0; 
 								
 								switch(objects[k]->kind) { // switch statement used to check object type and intersection information accordingly
 								case 0: // object is a camera so break
 									break; 
 								case 1: // object is a sphere so calculate sphere intersection
-									new_t = sphere_intersection(Ron, Rdn,
+									t = sphere_intersection(Ron, Rdn,
 																objects[k]->sphere.position,
 																objects[k]->sphere.radius);	
 							
 									break;
 								case 2: // object is a plane so calculate plane intersection
-									new_t = plane_intersection(Ron, Rdn,
+									t = plane_intersection(Ron, Rdn,
 																objects[k]->plane.position,
 																objects[k]->plane.normal);
 														
@@ -777,37 +782,53 @@ void raycasting()
 									fprintf(stderr, "Error: Unrecognized object.\n"); // Error in case siwtch doesn't evaluate as a known object but should never happen
 									exit(1);
 								}
-								if (new_t > 0 && new_t < new_best_t) // stores best_t if there's a dominant intersection. Also stores best_i to record current object index
-								{
-									new_best_t = new_t; 
-									best_s = k;
-								}
-								if (new_best_t > distance_to_light)
+								if (t > distance_to_light) // might be best_new_t?
 								{
 									// set best_s = 0? or also reset new_best_t?
 									continue;
 								}
+								if (t > 0 && t < new_best_t) // stores best_t if there's a dominant intersection. Also stores best_i to record current object index
+								{
+									new_best_t = t; 
+									printf("A shadow was found.\n");
+									//exit(1);
+									best_s = k;
+								}
+								/*if (new_best_t > distance_to_light) // might be best_new_t?
+								{
+									// set best_s = 0? or also reset new_best_t?
+									continue;
+								}*/
 								
 								// IF NEW_BEST_T > DISTANCE_TO_LIGHT -> CONTINUE
 							}
-							if(best_s == 0) // no closest shadow (wouldn't be 0 since camera always first)
+							if(best_s == -1) // no closest shadow (wouldn't be 0 since camera always first)
 							{ // N L R V
+								printf("There's no shadow!\n");
 								if(objects[best_i]->kind == 1) // determine necessary variables according to sphere fields
 								{
 									double n[3];
 									double l[3];
 									double r[3]; // reflection of l
 									double v[3];
-									double diffuse[3];
-									double specular[3];
+									double diffuse[3] = {0, 0, 0};
+									double specular[3] = {0, 0, 0};
 									
 									n[0] = Ron[0] - objects[best_i]->sphere.position[0];
 									n[1] = Ron[1] - objects[best_i]->sphere.position[1];
 									n[2] = Ron[2] - objects[best_i]->sphere.position[2];
 									
+									printf("n before:  [%lf %lf %lf]\n", n[0], n[1], n[2]);
+									normalize(n);
+									printf("n after:  [%lf %lf %lf]\n", n[0], n[1], n[2]);
+									
 									l[0] = Rdn[0];
 									l[1] = Rdn[1];
 									l[2] = Rdn[2];
+									
+									printf("l before:  [%lf %lf %lf]\n", l[0], l[1], l[2]);
+									normalize(l);
+									printf("l after:  [%lf %lf %lf]\n", l[0], l[1], l[2]);
 									
 									// calculating reflection variable
 									double temp_scalar = 2.0 * (n[0]*l[0] + n[1]*l[1] + n[2]*l[2]);
@@ -824,7 +845,9 @@ void raycasting()
 									v[1] = Rd[1];
 									v[2] = Rd[2];
 									
+									printf("Diffuse before:  [%lf %lf %lf]\n", diffuse[0], diffuse[1], diffuse[2]);
 									diffuse_calculation(n, l, lights[j]->light.color, objects[best_i]->sphere.diffuse_color, diffuse);
+									printf("Diffuse after:  [%lf %lf %lf]\n", diffuse[0], diffuse[1], diffuse[2]);
 									specular_calculation(n, l, lights[j]->light.color, objects[best_i]->sphere.specular_color, v, r, 1, specular);
 									
 									
@@ -843,9 +866,9 @@ void raycasting()
 									
 									double fang_val = fang(lights[j], object_direction);									
 									double frad_val = frad(lights[j], distance_to_light);
-									//color[0] += frad_val * fang_val * (diffuse[0] + specular[0]) 
-									//color[1] += frad_val * fang_val * (diffuse[1] + specular[1]) 
-									//color[2] += frad_val * fang_val * (diffuse[2] + specular[2]) 
+									color[0] += frad_val * fang_val * (diffuse[0] + specular[0]); 
+									color[1] += frad_val * fang_val * (diffuse[1] + specular[1]); 
+									color[2] += frad_val * fang_val * (diffuse[2] + specular[2]); 
 									
 									
 								}
@@ -855,16 +878,24 @@ void raycasting()
 									double l[3];
 									double r[3]; // reflection of l
 									double v[3];
-									double diffuse[3];
-									double specular[3];
+									double diffuse[3] = {0, 0, 0};
+									double specular[3] = {0, 0, 0};
 									
 									n[0] = objects[best_i]->plane.normal[0];
 									n[1] = objects[best_i]->plane.normal[1];
 									n[2] = objects[best_i]->plane.normal[2];
 									
+									printf("n before:  [%lf %lf %lf]\n", n[0], n[1], n[2]);
+									normalize(n);
+									printf("n after:  [%lf %lf %lf]\n", n[0], n[1], n[2]);
+									
 									l[0] = Rdn[0];
 									l[1] = Rdn[1];
 									l[2] = Rdn[2];
+									
+									printf("l before:  [%lf %lf %lf]\n", l[0], l[1], l[2]);
+									normalize(l);
+									printf("l after:  [%lf %lf %lf]\n", l[0], l[1], l[2]);
 									
 									// calculating reflection variable
 									double temp_scalar = 2.0 * (n[0]*l[0] + n[1]*l[1] + n[2]*l[2]);
@@ -900,9 +931,9 @@ void raycasting()
 									
 									double fang_val = fang(lights[j], object_direction);
 									double frad_val = frad(lights[j], distance_to_light);
-									//color[0] += frad_val * fang_val * (diffuse[0] + specular[0]) 
-									//color[1] += frad_val * fang_val * (diffuse[1] + specular[1]) 
-									//color[2] += frad_val * fang_val * (diffuse[2] + specular[2]) 
+									color[0] += frad_val * fang_val * (diffuse[0] + specular[0]); 
+									color[1] += frad_val * fang_val * (diffuse[1] + specular[1]); 
+									color[2] += frad_val * fang_val * (diffuse[2] + specular[2]); 
 									
 									
 								}
@@ -912,56 +943,30 @@ void raycasting()
 						
 						
 						}
+						// color is calculated
 						
-						
-						
-						
-						
-						
-						
-						
-						
-						
-						/*
-						if(objects[best_i]->kind == 1) // sphere
-						{
-							current_pixel.r = objects[best_i]->sphere.diffuse_color[0] * 255;
-							current_pixel.g = objects[best_i]->sphere.diffuse_color[1] * 255; // magnifies the color value between 0 and 1 (inclusive) by 255 to obtain the proper RGB color value
-							current_pixel.b = objects[best_i]->sphere.diffuse_color[2] * 255;
-						}
-						else if(objects[best_i]->kind == 2) // plane
-						{
-							current_pixel.r = objects[best_i]->plane.diffuse_color[0] * 255;
-							current_pixel.g = objects[best_i]->plane.diffuse_color[1] * 255; // magnifies the color value between 0 and 1 (inclusive) by 255 to obtain the proper RGB color value
-							current_pixel.b = objects[best_i]->plane.diffuse_color[2] * 255;
-						}
-						else if(objects[best_i]->kind == 3) // light
-						{ // need spec or diff?
-							
-						}
-						// potentially error check?
-						*/
-						current_pixel.r = color[0];
-						current_pixel.g = color[1];
-						current_pixel.b = color[2];
+						current_pixel.r = (unsigned char)(255 * clamp(color[0]));
+						current_pixel.g = (unsigned char)(255 * clamp(color[1]));
+						current_pixel.b = (unsigned char)(255 * clamp(color[2]));
 						*temp_ptr = current_pixel; // sets current image_data struct in temp_ptr to current_pixel colored from object 
 						temp_ptr++; // increments temp_ptr to point to next image_data struct in global buffer
 						
 						current_pixel.r = 0;
 						current_pixel.g = 0; // resets current pixel RGB values to 0 after coloring current pixel
 						current_pixel.b = 0;
-					} else { // no dominant intersection found at current point so pixel is to be colored black
+					}
+					else { // no dominant intersection found at current point so pixel is to be colored black
 						current_pixel.r = 0;
 						current_pixel.g = 0; // colors current pixel RGB values to 0 since no intersection was found
 						current_pixel.b = 0;		
 						*temp_ptr = current_pixel;  // sets current image_data struct in temp_ptr to current_pixel colored from object 
 						temp_ptr++; // increments temp_ptr to point to next image_data struct in global buffer
 					}
-     
-			}			
-	}	
+			}
+			}	
+
 		return;
-}
+	}	
 
 // write_image_data function takes in the output_file_name to know where to write out to
 void write_image_data(char* output_file_name)
@@ -1261,11 +1266,13 @@ void diffuse_calculation(double n[3], double l[3], double il[3], double kd[3], d
 {
 	double n_l = (n[0] * l[0]) + (n[1] * l[1]) + (n[2] * l[2]);
 	// potentially add K_a*I_a 
+	printf("n_l is: %lf\n", n_l);
     if (n_l > 0) 
 	{
         output[0] = (kd[0] * il[0]) * n_l;
         output[1] = (kd[1] * il[1]) * n_l;
         output[2] = (kd[2] * il[2]) * n_l;
+		printf("New diffuse should be:  [%lf %lf %lf]\n", output[0], output[1], output[2]);
     }
     else 
 	{
@@ -1294,3 +1301,4 @@ void specular_calculation(double n[3], double l[3], double il[3], double ks[3], 
         output[2] = 0;
     }
 }
+
