@@ -42,6 +42,8 @@ double sqr(double v); // squares the given double value
 
 double clamp (double value); // checks color range of value
 
+void diffuse_calculation(double n[3], double l[3], double il[3], double kd[3], double output[3]);
+
 
 
 // object struct typedef'd as Object intended to hold any of the specified objects in the given scene (.json) file
@@ -69,6 +71,7 @@ typedef struct {
     } plane;
     struct {
       //double color[3];
+	  int kind_light; // 0 = point light, 1 = spot light
 	  double color[3];
 	  double position[3];
 	  double direction[3];
@@ -341,11 +344,13 @@ void read_scene(char* filename)
 				fprintf(stderr, "Error: Object #%d (0-indexed) is a light which should have at least these 2 unique fields: color/position\n", i);
 				exit(1);
 			}
-			else if(light_rad2_read == 1 && light_rad1_read == 0 && light_rad0_read == 0 && light_ang0_read == 0 && light_direction_read == 0) // light is diffuse so do nothing
+			else if(light_rad2_read == 1 && light_rad1_read == 0 && light_rad0_read == 0 && light_ang0_read == 0 && light_direction_read == 0) // point light 
 			{
+				objects[i]->light.kind_light = 0;
 			}
-			else if(light_rad2_read == 1 && light_rad1_read == 1 && light_rad0_read == 1 && light_ang0_read == 1 && light_direction_read == 1) // light is specular so do nothing
+			else if(light_rad2_read == 1 && light_rad1_read == 1 && light_rad0_read == 1 && light_ang0_read == 1 && light_direction_read == 1) // spot light
 			{
+				objects[i]->light.kind_light = 1;
 			}
 			else // invalid number of fields read in for either type of light
 			{
@@ -775,7 +780,7 @@ void raycasting()
 								}
 								if (new_best_t > distance_to_light)
 								{
-									// set best_s = 0?
+									// set best_s = 0? or also reset new_best_t?
 									continue;
 								}
 								
@@ -815,14 +820,16 @@ void raycasting()
 									v[1] = Rd[1];
 									v[2] = Rd[2];
 									
-									diffuse[0] = objects[best_i]->sphere.diffuse_color[0];
+									diffuse_calculation(n, l, lights[j]->light.color, objects[best_i]->sphere.diffuse_color, diffuse);
+									
+									/*diffuse[0] = objects[best_i]->sphere.diffuse_color[0];
 									diffuse[1] = objects[best_i]->sphere.diffuse_color[0];
 									diffuse[2] = objects[best_i]->sphere.diffuse_color[0];
 									
 									specular[0] = objects[best_i]->sphere.specular_color[0];
 									specular[1] = objects[best_i]->sphere.specular_color[0];
 									specular[2] = objects[best_i]->sphere.specular_color[0];
-									
+									*/
 
 									
 									//color[0] +=
@@ -862,15 +869,18 @@ void raycasting()
 									v[0] = Rd[0];
 									v[1] = Rd[1];
 									v[2] = Rd[2];
+
+									diffuse_calculation(n, l, lights[j]->light.color, objects[best_i]->sphere.diffuse_color, diffuse);
+
 									
-									diffuse[0] = objects[best_i]->plane.diffuse_color[0];
+									/*diffuse[0] = objects[best_i]->plane.diffuse_color[0];
 									diffuse[1] = objects[best_i]->plane.diffuse_color[0];
 									diffuse[2] = objects[best_i]->plane.diffuse_color[0];
 									
 									specular[0] = objects[best_i]->plane.specular_color[0];
 									specular[1] = objects[best_i]->plane.specular_color[0];
 									specular[2] = objects[best_i]->plane.specular_color[0];
-									
+									*/
 									
 									
 									//color[0] +=
@@ -1172,7 +1182,10 @@ void print_objects(Object** objects)
 			}
 			else if(objects[i]->kind == 3)
 			{
-				printf("#%d object is a light\n", i);
+				if(objects[i]->light.kind_light == 0)
+					printf("#%d object is a point light\n", i);
+				else if(objects[i]->light.kind_light == 1)
+					printf("#%d object is a spot light\n", i);
 				printf("Light color is: [%lf, %lf, %lf]\n", objects[i]->light.color[0], objects[i]->light.color[1], objects[i]->light.color[2]);
 				printf("Light position is: [%lf, %lf, %lf]\n", objects[i]->light.position[0], objects[i]->light.position[1], objects[i]->light.position[2]);
 				printf("Light direction is: [%lf, %lf, %lf]\n", objects[i]->light.direction[0], objects[i]->light.direction[1], objects[i]->light.direction[2]);
@@ -1193,7 +1206,7 @@ void print_objects(Object** objects)
 }
 
 // clamping helper function to make sure color isn't outside of 0-1 range (inclusive)
-double clamp (double value)
+double clamp(double value)
 {
     if (value < 0)
         return 0;
@@ -1201,4 +1214,27 @@ double clamp (double value)
         return 1;
     else
         return value;
+}
+
+double fang(Object* light)
+{
+	if(light->light.kind_light == 0) // not spot light so return 1
+		return 1.0;
+}
+
+void diffuse_calculation(double n[3], double l[3], double il[3], double kd[3], double* output)
+{
+	double n_l = (n[0] * l[0]) + (n[1] * l[1]) + (n[2] * l[2]);
+	// potentially add K_a*I_a 
+    if (n_l > 0) {
+        output[0] = (kd[0] * il[0]) * n_l;
+        output[1] = (kd[1] * il[1]) * n_l;
+        output[2] = (kd[2] * il[2]) * n_l;
+    }
+    else {
+        // potentially return K_a*I_a 
+        output[0] = 0;
+        output[1] = 0;
+        output[2] = 0;
+    }
 }
