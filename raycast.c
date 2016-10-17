@@ -42,7 +42,9 @@ double sqr(double v); // squares the given double value
 
 double clamp (double value); // checks color range of value
 
-void diffuse_calculation(double n[3], double l[3], double il[3], double kd[3], double output[3]);
+void diffuse_calculation(double n[3], double l[3], double il[3], double kd[3], double* output);
+
+void specular_calculation(double n[3], double l[3], double il[3], double ks[3], double v[3], double r[3], double ns, double* output);
 
 
 
@@ -821,6 +823,8 @@ void raycasting()
 									v[2] = Rd[2];
 									
 									diffuse_calculation(n, l, lights[j]->light.color, objects[best_i]->sphere.diffuse_color, diffuse);
+									specular_calculation(n, l, lights[j]->light.color, objects[best_i]->sphere.specular_color, v, r, 1, specular);
+									
 									
 									/*diffuse[0] = objects[best_i]->sphere.diffuse_color[0];
 									diffuse[1] = objects[best_i]->sphere.diffuse_color[0];
@@ -870,8 +874,8 @@ void raycasting()
 									v[1] = Rd[1];
 									v[2] = Rd[2];
 
-									diffuse_calculation(n, l, lights[j]->light.color, objects[best_i]->sphere.diffuse_color, diffuse);
-
+									diffuse_calculation(n, l, lights[j]->light.color, objects[best_i]->plane.diffuse_color, diffuse);
+									specular_calculation(n, l, lights[j]->light.color, objects[best_i]->plane.specular_color, v, r, 1, specular);
 									
 									/*diffuse[0] = objects[best_i]->plane.diffuse_color[0];
 									diffuse[1] = objects[best_i]->plane.diffuse_color[0];
@@ -1222,17 +1226,39 @@ double fang(Object* light)
 		return 1.0;
 }
 
+// potentially change output type in signature?
 void diffuse_calculation(double n[3], double l[3], double il[3], double kd[3], double* output)
 {
 	double n_l = (n[0] * l[0]) + (n[1] * l[1]) + (n[2] * l[2]);
 	// potentially add K_a*I_a 
-    if (n_l > 0) {
+    if (n_l > 0) 
+	{
         output[0] = (kd[0] * il[0]) * n_l;
         output[1] = (kd[1] * il[1]) * n_l;
         output[2] = (kd[2] * il[2]) * n_l;
     }
-    else {
+    else 
+	{
         // potentially return K_a*I_a 
+        output[0] = 0;
+        output[1] = 0;
+        output[2] = 0;
+    }
+}
+
+void specular_calculation(double n[3], double l[3], double il[3], double ks[3], double v[3], double r[3], double ns, double* output)
+{
+    double n_l = (n[0] * l[0]) + (n[1] * l[1]) + (n[2] * l[2]);
+	double v_r = (v[0] * r[0]) + (v[1] * r[1]) + (v[2] * r[2]);
+    if (n_l > 0 && v_r > 0) 
+	{
+        double vr_ns_power = pow(v_r, ns);
+        output[0] = (ks[0] * il[0]) * vr_ns_power;
+        output[1] = (ks[1] * il[1]) * vr_ns_power;
+        output[2] = (ks[2] * il[2]) * vr_ns_power;
+    }
+    else 
+	{
         output[0] = 0;
         output[1] = 0;
         output[2] = 0;
