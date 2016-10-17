@@ -47,7 +47,6 @@ void diffuse_calculation(double n[3], double l[3], double il[3], double kd[3], d
 void specular_calculation(double n[3], double l[3], double il[3], double ks[3], double v[3], double r[3], double ns, double* output);
 
 
-
 // object struct typedef'd as Object intended to hold any of the specified objects in the given scene (.json) file
 typedef struct {
   int kind; // 0 = camera, 1 = sphere, 2 = plane, 3 = light
@@ -86,6 +85,9 @@ typedef struct {
   };
 } Object;
 
+double frad(Object* light, double dl);
+
+double fang(Object* light);
 
 void print_objects(Object** objects); // testing helper function REMOVE?
 
@@ -836,9 +838,10 @@ void raycasting()
 									*/
 
 									
-									//color[0] +=
-									//color[1] +=
-									//color[2] +=
+									double frad_val = frad(lights[j], distance_to_light);
+									//color[0] += frad_val + (diffuse[0] + specular[0]) 
+									//color[1] += frad_val + (diffuse[1] + specular[1]) 
+									//color[2] += frad_val + (diffuse[2] + specular[2]) 
 									
 									
 								}
@@ -877,6 +880,7 @@ void raycasting()
 									diffuse_calculation(n, l, lights[j]->light.color, objects[best_i]->plane.diffuse_color, diffuse);
 									specular_calculation(n, l, lights[j]->light.color, objects[best_i]->plane.specular_color, v, r, 1, specular);
 									
+									
 									/*diffuse[0] = objects[best_i]->plane.diffuse_color[0];
 									diffuse[1] = objects[best_i]->plane.diffuse_color[0];
 									diffuse[2] = objects[best_i]->plane.diffuse_color[0];
@@ -886,10 +890,10 @@ void raycasting()
 									specular[2] = objects[best_i]->plane.specular_color[0];
 									*/
 									
-									
-									//color[0] +=
-									//color[1] +=
-									//color[2] +=
+									double frad_val = frad(lights[j], distance_to_light);
+									//color[0] += frad_val + (diffuse[0] + specular[0]) 
+									//color[1] += frad_val + (diffuse[1] + specular[1]) 
+									//color[2] += frad_val + (diffuse[2] + specular[2]) 
 									
 									
 								}
@@ -1218,6 +1222,20 @@ double clamp(double value)
         return 1;
     else
         return value;
+}
+
+double frad(Object* light, double dl)
+{
+	// check for dl value?
+	if(light->light.kind_light == 0) // not spot light so assure 0 value for radial-a1 and radial-a0
+	{
+		light->light.radial_a1 = 0;
+		light->light.radial_a0 = 0;
+	}
+	
+	double return_value = 1 / ((light->light.radial_a2 * (dl * dl)) + (light->light.radial_a1 * dl) + light->light.radial_a0);
+	
+	return return_value;
 }
 
 double fang(Object* light)
