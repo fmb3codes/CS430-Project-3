@@ -358,7 +358,7 @@ void read_scene(char* filename)
 			}
 			else // invalid number of fields read in for either type of light
 			{
-					fprintf(stderr, "Error: Object #%d (0-indexed) is a light which should be either specular/diffuse. (ie have fields: direction/radial-a2/radial-a1/radial-a0/angular-a0 or radial-a2)\n", i);
+					fprintf(stderr, "Error: Object #%d (0-indexed) is a light which should be either a spotlight/pointlight. (ie have fields: direction/radial-a2/radial-a1/radial-a0/angular-a0 or radial-a2)\n", i);
 					exit(1);
 			}
 
@@ -427,9 +427,9 @@ void read_scene(char* filename)
 		// REDO VALUE ERROR CHECKING IF NEEDED, REMOVE AT THE VERY LEAST
 		else if(strcmp(key, "radial-a2") == 0 && objects[i]-> kind == 3) // evaluates only if key is radial-a2 and current object is a light
 		{
-			if(value <= 0) // error check to make sure a negative radius isn't read in from json file
+			if(value < 0) // error check to make sure a negative radius isn't read in from json file
 			{
-				fprintf(stderr, "Error: Sphere radius should not be less than or equal to 0. Violation found on line number %d.\n", line);
+				fprintf(stderr, "Error: radial-a2 must be positive. Violation found on line number %d.\n", line);
 				exit(1);
 			}
 			objects[i]->light.radial_a2 = value;
@@ -437,9 +437,9 @@ void read_scene(char* filename)
 		}
 		else if(strcmp(key, "radial-a1") == 0 && objects[i]-> kind == 3) // evaluates only if key is radial-a1 and current object is a light
 		{
-			if(value <= 0) // error check to make sure a negative radius isn't read in from json file
+			if(value < 0) // error check to make sure a negative radius isn't read in from json file
 			{
-				fprintf(stderr, "Error: Sphere radius should not be less than or equal to 0. Violation found on line number %d.\n", line);
+				fprintf(stderr, "Error: radial-a1 must be positive. Violation found on line number %d.\n", line);
 				exit(1);
 			}
 			objects[i]->light.radial_a1 = value;
@@ -447,9 +447,9 @@ void read_scene(char* filename)
 		}
 		else if(strcmp(key, "radial-a0") == 0 && objects[i]-> kind == 3) // evaluates only if key is radial-a0 and current object is a light
 		{
-			if(value <= 0) // error check to make sure a negative radius isn't read in from json file
+			if(value < 0) // error check to make sure a negative radius isn't read in from json file
 			{
-				fprintf(stderr, "Error: Sphere radius should not be less than or equal to 0. Violation found on line number %d.\n", line);
+				fprintf(stderr, "Error: radial-a0 must be positive. Violation found on line number %d.\n", line);
 				exit(1);
 			}
 			objects[i]->light.radial_a0 = value;
@@ -457,7 +457,7 @@ void read_scene(char* filename)
 		}
 		else if(strcmp(key, "angular-a0") == 0 && objects[i]-> kind == 3) // evaluates only if key is angular-a0 and current object is a light
 		{
-			if(value <= 0) // error check to make sure a negative radius isn't read in from json file
+			if(value < 0) // error check to make sure a negative radius isn't read in from json file
 			{
 				fprintf(stderr, "Error: angular-a0 must be positive. Violation found on line number %d.\n", line);
 				exit(1);
@@ -732,14 +732,14 @@ void raycasting()
 					}
 					
 					if (best_t > 0 && best_t != INFINITY) {
-					double Ron[3] = {0, 0, 0}; // Initializes new origin ray to the assumed 0, 0, 0 position
-					double Rdn[3] = {0, 0, 0}; // Initializes new direction of ray to 0, 0, 0 which will be changed
+						double Ron[3] = {0, 0, 0}; // Initializes new origin ray to the assumed 0, 0, 0 position
+						double Rdn[3] = {0, 0, 0}; // Initializes new direction of ray to 0, 0, 0 which will be changed
 							
 						// DO LIGHT CHECK HERE?
 						
-							Ron[0] = best_t * Rd[0] + Ro[0];
-							Ron[1] = best_t * Rd[1] + Ro[1];
-							Ron[2] = best_t * Rd[2] + Ro[2];
+						Ron[0] = best_t * Rd[0] + Ro[0];
+						Ron[1] = best_t * Rd[1] + Ro[1];
+						Ron[2] = best_t * Rd[2] + Ro[2];
 						
 						for(int j =  0; lights[j] != 0; j+=1)
 						{							
@@ -963,7 +963,7 @@ void raycasting()
 						temp_ptr++; // increments temp_ptr to point to next image_data struct in global buffer
 					}
 			}
-			}	
+		}	
 
 		return;
 	}	
@@ -1240,7 +1240,7 @@ double clamp(double value)
 
 double frad(Object* light, double dl)
 {
-	// check for dl value?
+	// check for dl value being infinity?
 	if(light->light.kind_light == 0) // not spot light so assure 0 value for radial-a1 and radial-a0
 	{
 		light->light.radial_a1 = 0;
