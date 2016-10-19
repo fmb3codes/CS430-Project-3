@@ -608,7 +608,7 @@ void read_scene(char* filename)
 			else if(objects[i]->kind == 3)
 			{
 				objects[i]->light.position[0] = value[0];
-				objects[i]->light.position[1] = value[1]; // assigns position values from value vector to current light object 
+				objects[i]->light.position[1] = -value[1]; // assigns position values from value vector to current light object 
 				objects[i]->light.position[2] = value[2];
 				light_position_read++; // increments error checking variable for light position field being read
 			}
@@ -701,11 +701,11 @@ void raycasting()
 		}
 		lights[light_counter] == NULL;
 		
-		print_objects(lights);
+		print_objects(lights); // testing code
 		// end of block of code for creating/filling new lights array
 		
 		
-		// sets cx and cy values of camera (assumed to be at 0, 0
+		// sets cx and cy values of camera (assumed to be at 0, 0)
 		double cx = 0;
 		double cy = 0;
 		
@@ -784,11 +784,16 @@ void raycasting()
 							Rdn[0] = lights[j]->light.position[0] - Ron[0];
 							Rdn[1] = lights[j]->light.position[1] - Ron[1];
 							Rdn[2] = lights[j]->light.position[2] - Ron[2];
+							
+							double distance_to_light = sqrt(sqr(Rdn[0]) + sqr(Rdn[1]) + sqr(Rdn[2]));  // potentially move below normalize?
+							//double distance_to_light = sqrt(sqr(Ron[0]) + sqr(Ron[1]) + sqr(Ron[2]));
+							
+							
 							printf("Rdn before:  [%lf %lf %lf]\n", Rdn[0], Rdn[1], Rdn[2]);
 							normalize(Rdn);
 							printf("Rdn after:  [%lf %lf %lf]\n", Rdn[0], Rdn[1], Rdn[2]);
 							
-							double distance_to_light = sqrt(sqr(Rdn[0]) + sqr(Rdn[1]) + sqr(Rdn[2]));
+				
 							
 							double new_best_t = INFINITY;
 							int best_s = -1;
@@ -820,6 +825,11 @@ void raycasting()
 									fprintf(stderr, "Error: Unrecognized object.\n"); // Error in case siwtch doesn't evaluate as a known object but should never happen
 									exit(1);
 								}
+								/*if (t > distance_to_light) // might be best_new_t?
+								{
+									// set best_s = 0? or also reset new_best_t?
+									continue;
+								}*/
 								if (t > distance_to_light) // might be best_new_t?
 								{
 									// set best_s = 0? or also reset new_best_t?
@@ -840,7 +850,7 @@ void raycasting()
 								
 								// IF NEW_BEST_T > DISTANCE_TO_LIGHT -> CONTINUE
 							}
-							if(best_s == -1) // no closest shadow (wouldn't be 0 since camera always first)
+							if(best_s == -1) // no closest shadow 
 							{ // N L R V
 								printf("There's no shadow!\n");
 								if(objects[best_i]->kind == 1) // determine necessary variables according to sphere fields
@@ -870,7 +880,7 @@ void raycasting()
 									printf("l after:  [%lf %lf %lf]\n", l[0], l[1], l[2]);
 									
 									// calculating reflection variable
-									double temp_scalar = 2.0 * (n[0]*l[0] + n[1]*l[1] + n[2]*l[2]);
+									double temp_scalar = 2.0 * ((n[0]*l[0]) + (n[1]*l[1]) + (n[2]*l[2]));
 									double temp_vector[3];
 									temp_vector[0] = n[0] * temp_scalar;
 									temp_vector[1] = n[1] * temp_scalar;
@@ -909,6 +919,7 @@ void raycasting()
 									object_direction[0] = Rdn[0] * -1;
 									object_direction[1] = Rdn[1] * -1;
 									object_direction[2] = Rdn[2] * -1;
+									normalize(object_direction);
 									
 									double fang_val = fang(lights[j], object_direction, lights[j]->light.theta);									
 									double frad_val = frad(lights[j], distance_to_light);
@@ -937,7 +948,7 @@ void raycasting()
 									printf("n after:  [%lf %lf %lf]\n", n[0], n[1], n[2]);
 									
 									l[0] = Rdn[0];
-									l[1] = Rdn[1];
+									l[1] = -Rdn[1];
 									l[2] = Rdn[2];
 									
 									printf("l before:  [%lf %lf %lf]\n", l[0], l[1], l[2]);
@@ -945,7 +956,7 @@ void raycasting()
 									printf("l after:  [%lf %lf %lf]\n", l[0], l[1], l[2]);
 									
 									// calculating reflection variable
-									double temp_scalar = 2.0 * (n[0]*l[0] + n[1]*l[1] + n[2]*l[2]);
+									double temp_scalar = 2.0 * ((n[0]*l[0]) + (n[1]*l[1]) + (n[2]*l[2]));
 									double temp_vector[3];
 									temp_vector[0] = n[0] * temp_scalar;
 									temp_vector[1] = n[1] * temp_scalar;
@@ -982,6 +993,7 @@ void raycasting()
 									object_direction[0] = Rdn[0] * -1;
 									object_direction[1] = Rdn[1] * -1;
 									object_direction[2] = Rdn[2] * -1;
+									normalize(object_direction);
 									
 									double fang_val = fang(lights[j], object_direction, lights[j]->light.theta);
 									double frad_val = frad(lights[j], distance_to_light);
@@ -1010,9 +1022,9 @@ void raycasting()
 						current_pixel.b = 0;
 					}
 					else { // no dominant intersection found at current point so pixel is to be colored black
-						current_pixel.r = 0;
-						current_pixel.g = 0; // colors current pixel RGB values to 0 since no intersection was found
-						current_pixel.b = 0;		
+						current_pixel.r = (unsigned char)(255 * clamp(color[0]));
+						current_pixel.g = (unsigned char)(255 * clamp(color[1])); // should all be 0
+						current_pixel.b = (unsigned char)(255 * clamp(color[2]));		
 						*temp_ptr = current_pixel;  // sets current image_data struct in temp_ptr to current_pixel colored from object 
 						temp_ptr++; // increments temp_ptr to point to next image_data struct in global buffer
 					}
@@ -1296,18 +1308,19 @@ double clamp(double value)
 double frad(Object* light, double dl)
 {
 	// check for dl value being infinity?
+	if(light->light.radial_a2 == 0) // invalid a2 value?
+		light->light.radial_a2 = 1.0;
 	printf("frad call\n");
-	double return_value = 1.0 / ((light->light.radial_a2 * (dl * dl)) + (light->light.radial_a1 * dl) + light->light.radial_a0);
+	double return_value = (1.0 / ((light->light.radial_a2 * sqr(dl)) + (light->light.radial_a1 * dl) + light->light.radial_a0));
 	
 	return return_value;
 }
 
 double fang(Object* light, double direction[3], double theta)
 {
-	printf("fang call\n");
 	if(light->light.kind_light == 0) // not spot light so return 1
 		return 1.0;
-		
+	printf("fang call\n");
 	double v0_vl = (light->light.direction[0] * direction[0]) + (light->light.direction[1] * direction[1]) +  (light->light.direction[2] * direction[2]);
 	if(v0_vl < cos(0.0173 * theta)) // .0173 * theta converts from degreest to radians for cos() function
 		return 0;
@@ -1354,4 +1367,3 @@ void specular_calculation(double n[3], double l[3], double il[3], double ks[3], 
         output[2] = 0;
     }
 }
-
