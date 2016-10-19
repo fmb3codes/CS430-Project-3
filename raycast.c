@@ -80,6 +80,7 @@ typedef struct {
 	  double radial_a1;
 	  double radial_a0;
 	  double angular_a0;
+	  double theta;
 	  // add flag for different light type and set after fully reading in object?
     } light;
   };
@@ -253,6 +254,7 @@ void read_scene(char* filename)
 	  int light_rad1_read = 0;
 	  int light_rad0_read = 0;
 	  int light_ang0_read = 0;
+	  int light_theta_read = 0;
 	  
       skip_ws(json);
     
@@ -348,17 +350,38 @@ void read_scene(char* filename)
 				fprintf(stderr, "Error: Object #%d (0-indexed) is a light which should have at least these 2 unique fields: color/position\n", i);
 				exit(1);
 			}
-			else if(light_rad2_read == 1 && light_rad1_read == 0 && light_rad0_read == 0 && light_ang0_read == 0 && light_direction_read == 0) // point light 
+			else if(light_rad2_read == 1 && light_ang0_read == 0 && light_direction_read == 0) // point light should have at least rad2 and no angular-a0/direction
 			{
+				// block of code which defaults radial values if they weren't properly set
+				if(light_rad1_read == 0)
+					objects[i]->light.radial_a1 = 0;
+				if(light_rad0_read == 0)
+					objects[i]->light.radial_a0 = 0;
+				// end of radial value check
+				
 				objects[i]->light.kind_light = 0;
 			}
-			else if(light_rad2_read == 1 && light_rad1_read == 1 && light_rad0_read == 1 && light_ang0_read == 1 && light_direction_read == 1) // spot light
+			else if(light_theta_read == 1 && light_ang0_read == 1 && light_direction_read == 1) // spot light
 			{
-				objects[i]->light.kind_light = 1;
+				// block of code which defaults radial values if they weren't properly set
+				if(light_rad2_read == 0)
+					objects[i]->light.radial_a2 = 1;
+				if(light_rad1_read == 0)
+					objects[i]->light.radial_a1 = 0;
+				if(light_rad0_read == 0)
+					objects[i]->light.radial_a0 = 0;
+				// end of radial value check
+				
+				// if theta was read in but the value is 0, then it's a point light
+				if(objects[i]->light.theta == 0)
+					objects[i]->light.kind_light = 0;
+				// if theta was read in and the value is not 0, we know it's not less than 0, so it's a spot light
+				if(objects[i]->light.theta != 0)
+					objects[i]->light.kind_light = 1;
 			}
 			else // invalid number of fields read in for either type of light
 			{
-					fprintf(stderr, "Error: Object #%d (0-indexed) is a light which should be either a spotlight/pointlight. (ie have fields: direction/radial-a2/radial-a1/radial-a0/angular-a0 or radial-a2)\n", i);
+					fprintf(stderr, "Error: Object #%d (0-indexed) is a light which should be either a spotlight/pointlight. (ie must have fields: direction/angular-a0/theta or just radial-a2, respectively)\n", i);
 					exit(1);
 			}
 
@@ -382,6 +405,7 @@ void read_scene(char* filename)
 		int light_rad1_read = 0;
 		int light_rad0_read = 0;
 		int light_ang0_read = 0;
+		int light_theta_read = 0;
 	    break;
 	  } 
 	  else if (c == ',') 
@@ -398,7 +422,8 @@ void read_scene(char* filename)
 		  (strcmp(key, "radial-a2") == 0) || 
 	      (strcmp(key, "radial-a1") == 0) ||
 		  (strcmp(key, "radial-a0") == 0) ||
-		  (strcmp(key, "angular-a0") == 0))
+		  (strcmp(key, "angular-a0") == 0) ||
+		  (strcmp(key, "theta") == 0))
 	  {
 	    double value = next_number(json);
 		if(strcmp(key, "width") == 0 && objects[i]->kind == 0) // evaluates only if key is width and current object is a camera
@@ -464,7 +489,17 @@ void read_scene(char* filename)
 			}
 			objects[i]->light.angular_a0 = value;
 			light_ang0_read++; // increments error checking variable for sphere radius field being read
-		}		
+		}
+		else if(strcmp(key, "theta") == 0 && objects[i]-> kind == 3) // evaluates only if key is angular-a0 and current object is a light
+		{
+			if(value < 0) // error check to make sure a negative radius isn't read in from json file
+			{
+				fprintf(stderr, "Error: theta must be positive. Violation found on line number %d.\n", line);
+				exit(1);
+			}
+			objects[i]->light.theta = value;
+			light_theta_read++; // increments error checking variable for sphere radius field being read
+		}			
 		// REMEMBER TO REDO ERROR CHECKING HERE
 		
 		else // after key was identified as width/height/radius, object type is unknown so display an error
@@ -1215,6 +1250,7 @@ void print_objects(Object** objects)
 				printf("Light radial-a1 is: %lf\n", objects[i]->light.radial_a1);
 				printf("Light radial-a0 is: %lf\n", objects[i]->light.radial_a0);
 				printf("Light angular-a0 is: %lf\n", objects[i]->light.angular_a0);
+				printf("Light theta is: %lf\n", objects[i]->light.theta);
 				printf("-------------------------------------------------------\n");
 				i++;
 			}
