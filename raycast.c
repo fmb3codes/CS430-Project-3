@@ -88,7 +88,7 @@ typedef struct {
 
 double frad(Object* light, double dl);
 
-double fang(Object* light, double direction[3]);
+double fang(Object* light, double direction[3], double theta);
 
 void print_objects(Object** objects); // testing helper function REMOVE?
 
@@ -499,8 +499,11 @@ void read_scene(char* filename)
 			}
 			objects[i]->light.theta = value;
 			light_theta_read++; // increments error checking variable for sphere radius field being read
-		}			
-		// REMEMBER TO REDO ERROR CHECKING HERE
+		}	
+
+		///
+		// REMEMBER TO POTENTIALLY REDO ERROR CHECKING HERE
+		///
 		
 		else // after key was identified as width/height/radius, object type is unknown so display an error
 		{
@@ -846,6 +849,7 @@ void raycasting()
 									double l[3];
 									double r[3]; // reflection of l
 									double v[3];
+									double nv[3];
 									double diffuse[3] = {0, 0, 0};
 									double specular[3] = {0, 0, 0};
 									
@@ -871,19 +875,26 @@ void raycasting()
 									temp_vector[0] = n[0] * temp_scalar;
 									temp_vector[1] = n[1] * temp_scalar;
 									temp_vector[2] = n[2] * temp_scalar;
-									r[0] = l[0] - temp_vector[0];
-									r[1] = l[1] - temp_vector[1];
-									r[2] = l[2] - temp_vector[2];								
+									//r[0] = l[0] - temp_vector[0];
+									//r[1] = l[1] - temp_vector[1];
+									//r[2] = l[2] - temp_vector[2];		
+									r[0] = temp_vector[0] - l[0];
+									r[1] = temp_vector[1] - l[1];
+									r[2] = temp_vector[2] - l[2];					
 									//
 									
 									v[0] = Rd[0];
 									v[1] = Rd[1];
 									v[2] = Rd[2];
 									
+									nv[0] = v[0] * -1;
+									nv[1] = v[1] * -1;
+									nv[2] = v[2] * -1;
+									 
 									printf("Diffuse before:  [%lf %lf %lf]\n", diffuse[0], diffuse[1], diffuse[2]);
 									diffuse_calculation(n, l, lights[j]->light.color, objects[best_i]->sphere.diffuse_color, diffuse);
 									printf("Diffuse after:  [%lf %lf %lf]\n", diffuse[0], diffuse[1], diffuse[2]);
-									specular_calculation(n, l, lights[j]->light.color, objects[best_i]->sphere.specular_color, v, r, 1, specular);
+									specular_calculation(n, l, lights[j]->light.color, objects[best_i]->sphere.specular_color, nv, r, 20, specular);
 									
 									
 									/*diffuse[0] = objects[best_i]->sphere.diffuse_color[0];
@@ -899,7 +910,7 @@ void raycasting()
 									object_direction[1] = Rdn[1] * -1;
 									object_direction[2] = Rdn[2] * -1;
 									
-									double fang_val = fang(lights[j], object_direction);									
+									double fang_val = fang(lights[j], object_direction, lights[j]->light.theta);									
 									double frad_val = frad(lights[j], distance_to_light);
 									color[0] += frad_val * fang_val * (diffuse[0] + specular[0]); 
 									color[1] += frad_val * fang_val * (diffuse[1] + specular[1]); 
@@ -913,6 +924,7 @@ void raycasting()
 									double l[3];
 									double r[3]; // reflection of l
 									double v[3];
+									double nv[3];
 									double diffuse[3] = {0, 0, 0};
 									double specular[3] = {0, 0, 0};
 									
@@ -938,17 +950,24 @@ void raycasting()
 									temp_vector[0] = n[0] * temp_scalar;
 									temp_vector[1] = n[1] * temp_scalar;
 									temp_vector[2] = n[2] * temp_scalar;
-									r[0] = l[0] - temp_vector[0];
-									r[1] = l[1] - temp_vector[1];
-									r[2] = l[2] - temp_vector[2];								
+									//r[0] = l[0] - temp_vector[0];
+									//r[1] = l[1] - temp_vector[1];
+									//r[2] = l[2] - temp_vector[2];		
+									r[0] = temp_vector[0] - l[0];
+									r[1] = temp_vector[1] - l[1];
+									r[2] = temp_vector[2] - l[2];								
 									//
 									
 									v[0] = Rd[0];
 									v[1] = Rd[1];
 									v[2] = Rd[2];
+									
+									nv[0] = v[0] * -1;
+									nv[1] = v[1] * -1;
+									nv[2] = v[2] * -1;
 
 									diffuse_calculation(n, l, lights[j]->light.color, objects[best_i]->plane.diffuse_color, diffuse);
-									specular_calculation(n, l, lights[j]->light.color, objects[best_i]->plane.specular_color, v, r, 1, specular);
+									specular_calculation(n, l, lights[j]->light.color, objects[best_i]->plane.specular_color, nv, r, 20, specular);
 									
 									
 									/*diffuse[0] = objects[best_i]->plane.diffuse_color[0];
@@ -964,7 +983,7 @@ void raycasting()
 									object_direction[1] = Rdn[1] * -1;
 									object_direction[2] = Rdn[2] * -1;
 									
-									double fang_val = fang(lights[j], object_direction);
+									double fang_val = fang(lights[j], object_direction, lights[j]->light.theta);
 									double frad_val = frad(lights[j], distance_to_light);
 									color[0] += frad_val * fang_val * (diffuse[0] + specular[0]); 
 									color[1] += frad_val * fang_val * (diffuse[1] + specular[1]); 
@@ -1277,23 +1296,22 @@ double clamp(double value)
 double frad(Object* light, double dl)
 {
 	// check for dl value being infinity?
-	if(light->light.kind_light == 0) // not spot light so assure 0 value for radial-a1 and radial-a0
-	{
-		light->light.radial_a1 = 0;
-		light->light.radial_a0 = 0;
-	}
-	
-	double return_value = 1 / ((light->light.radial_a2 * (dl * dl)) + (light->light.radial_a1 * dl) + light->light.radial_a0);
+	printf("frad call\n");
+	double return_value = 1.0 / ((light->light.radial_a2 * (dl * dl)) + (light->light.radial_a1 * dl) + light->light.radial_a0);
 	
 	return return_value;
 }
 
-double fang(Object* light, double direction[3])
+double fang(Object* light, double direction[3], double theta)
 {
+	printf("fang call\n");
 	if(light->light.kind_light == 0) // not spot light so return 1
 		return 1.0;
 		
 	double v0_vl = (light->light.direction[0] * direction[0]) + (light->light.direction[1] * direction[1]) +  (light->light.direction[2] * direction[2]);
+	if(v0_vl < cos(0.0173 * theta)) // .0173 * theta converts from degreest to radians for cos() function
+		return 0;
+		
 	return pow(v0_vl, light->light.angular_a0);
 }
 
@@ -1301,7 +1319,7 @@ double fang(Object* light, double direction[3])
 void diffuse_calculation(double n[3], double l[3], double il[3], double kd[3], double* output)
 {
 	double n_l = (n[0] * l[0]) + (n[1] * l[1]) + (n[2] * l[2]);
-	// potentially add K_a*I_a 
+	// ambient constant would go here in the future
 	printf("n_l is: %lf\n", n_l);
     if (n_l > 0) 
 	{
@@ -1312,7 +1330,6 @@ void diffuse_calculation(double n[3], double l[3], double il[3], double kd[3], d
     }
     else 
 	{
-        // potentially return K_a*I_a 
         output[0] = 0;
         output[1] = 0;
         output[2] = 0;
