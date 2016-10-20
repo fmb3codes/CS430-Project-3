@@ -618,7 +618,7 @@ void read_scene(char* filename)
 		else if(strcmp(key, "direction") == 0 && objects[i]->kind == 3) // evaluates only if key is direction and current object is a light
 		{
 			objects[i]->light.direction[0] = value[0];
-			objects[i]->light.direction[1] = value[1]; // assigns normal values from value vector to current light object 
+			objects[i]->light.direction[1] = -value[1]; // assigns direction values from value vector to current light object 
 			objects[i]->light.direction[2] = value[2];
 			light_direction_read++; // increments error checking variable for light direction field being read
 		}
