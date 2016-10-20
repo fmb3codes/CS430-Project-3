@@ -42,9 +42,9 @@ double sqr(double v); // squares the given double value
 
 double clamp (double value); // checks color range of value
 
-void diffuse_calculation(double n[3], double l[3], double il[3], double kd[3], double* output);
+void diffuse_calculation(double n[3], double l[3], double il[3], double kd[3], double* output); // performs diffuse color calculation
 
-void specular_calculation(double n[3], double l[3], double il[3], double ks[3], double v[3], double r[3], double ns, double* output);
+void specular_calculation(double n[3], double l[3], double il[3], double ks[3], double v[3], double r[3], double ns, double* output); // performs specular color calcuation
 
 
 // object struct typedef'd as Object intended to hold any of the specified objects in the given scene (.json) file
@@ -57,21 +57,18 @@ typedef struct {
       double height;
     } camera;
     struct {
-      //double color[3];
 	  double diffuse_color[3];
 	  double specular_color[3];
       double position[3];
       double radius;
     } sphere;
     struct {
-      //double color[3];
 	  double diffuse_color[3];
 	  double specular_color[3];
 	  double position[3];
 	  double normal[3];
     } plane;
     struct {
-      //double color[3];
 	  int kind_light; // 0 = point light, 1 = spot light
 	  double color[3];
 	  double position[3];
@@ -81,14 +78,14 @@ typedef struct {
 	  double radial_a0;
 	  double angular_a0;
 	  double theta;
-	  // add flag for different light type and set after fully reading in object?
     } light;
   };
 } Object;
 
-double frad(Object* light, double dl);
+// radial/angular attenuation functions placed after Object struct as they require it to be defined as a parameter
+double frad(Object* light, double dl); // performs radial attenuation
 
-double fang(Object* light, double direction[3], double theta);
+double fang(Object* light, double direction[3], double theta); // performs angular attenuation
 
 void print_objects(Object** objects); // testing helper function REMOVE?
 
@@ -103,7 +100,7 @@ typedef struct header_data
   char* file_maxcolor;
 } header_data;
 
-// image_data buffer which is intended to hold a set of RGB pixels represented as unsigned char's
+// image_data buffer which is intended to hold a set of RGB pixels represented as unsigned chars
 typedef struct image_data 
 {
   unsigned char r, g, b;
@@ -722,8 +719,6 @@ void raycasting()
 		double Rd[3] = {0, 0, 0}; // Initializes direction of ray to 0, 0, 0 which will be changed
 		double ray[3] = {0, 0, 1}; // Initializes temporary ray with 0, 0 for the x and y values and 1 for the assumed z value position
 		
-		// exit(1); testing
-		
 		for (int y = 0; y < M; y += 1) {
 			ray[1] = (cy - (glob_height/2) + pixheight * (y + 0.5)); // calculates y-position of ray and stores accordingly
 			for (int x = 0; x < N; x += 1) {
@@ -817,9 +812,8 @@ void raycasting()
 									fprintf(stderr, "Error: Unrecognized object.\n"); // Error in case siwtch doesn't evaluate as a known object but should never happen
 									exit(1);
 								}
-								if (t > distance_to_light) // might be best_new_t?
+								if (t > distance_to_light)
 								{
-									// set best_s = 0? or also reset new_best_t?
 									continue;
 								}
 								if (t > 0 && t < new_best_t) // stores new_best_t if there's a dominant shadow intersection. Also stores best_s to record current object index
@@ -829,18 +823,18 @@ void raycasting()
 								}
 							}
 							if(best_s == -1) // no closest shadow was found since best_s was unmodified (would never be set to -1 otherwise)
-							{ 
-								if(objects[best_i]->kind == 1) // determine necessary variables according to sphere fields
-								{
-									// initializes necessary n, l, r, v, and nv vectors as well as diffuse and specular vectors
-									double n[3];
-									double l[3];
-									double r[3]; // reflection of l
-									double v[3];
-									double nv[3];
-									double diffuse[3] = {0, 0, 0};
-									double specular[3] = {0, 0, 0};
-									
+							{ 					
+								// initializes necessary n, l, r, v, and nv vectors as well as diffuse and specular vectors
+								double n[3]; 
+								double l[3];
+								double r[3]; // reflection of l
+								double v[3];
+								double nv[3];
+								double diffuse[3] = {0, 0, 0};
+								double specular[3] = {0, 0, 0};
+								
+								if(objects[best_i]->kind == 1) // determine some necessary variables according to sphere fields
+								{									
 									n[0] = Ron[0] - objects[best_i]->sphere.position[0];
 									n[1] = Ron[1] - objects[best_i]->sphere.position[1]; // sets normal to the Ron vector minus the closest object's (sphere in this case) position
 									n[2] = Ron[2] - objects[best_i]->sphere.position[2];
@@ -872,43 +866,13 @@ void raycasting()
 									nv[1] = v[1] * -1; // nv vector (v vector scaled by -1) to be passed into the specular_calculation function
 									nv[2] = v[2] * -1;
 									 
+									// passes in corresponding variables for diffuse and specular calculators, using the diffuse/specular vectors as output
 									diffuse_calculation(n, l, lights[j]->light.color, objects[best_i]->sphere.diffuse_color, diffuse);
 									specular_calculation(n, l, lights[j]->light.color, objects[best_i]->sphere.specular_color, nv, r, 20, specular);
-									
-									
-									/*diffuse[0] = objects[best_i]->sphere.diffuse_color[0];
-									diffuse[1] = objects[best_i]->sphere.diffuse_color[0];
-									diffuse[2] = objects[best_i]->sphere.diffuse_color[0];
-									
-									specular[0] = objects[best_i]->sphere.specular_color[0];
-									specular[1] = objects[best_i]->sphere.specular_color[0];
-									specular[2] = objects[best_i]->sphere.specular_color[0];
-									*/
-									double object_direction[3];
-									object_direction[0] = Rdn[0] * -1;
-									object_direction[1] = Rdn[1] * -1;
-									object_direction[2] = Rdn[2] * -1;
-									normalize(object_direction);
-									
-									double fang_val = fang(lights[j], object_direction, lights[j]->light.theta);									
-									double frad_val = frad(lights[j], distance_to_light);
-									color[0] += frad_val * fang_val * (diffuse[0] + specular[0]); 
-									color[1] += frad_val * fang_val * (diffuse[1] + specular[1]); 
-									color[2] += frad_val * fang_val * (diffuse[2] + specular[2]); 
-									
-									
+																									
 								}
-								else if(objects[best_i]->kind == 2) // determine necessary variables according to plane fields
-								{
-									// initializes necessary n, l, r, v, and nv vectors as well as diffuse and specular vectors
-									double n[3]; 
-									double l[3];
-									double r[3]; // reflection of l
-									double v[3];
-									double nv[3];
-									double diffuse[3] = {0, 0, 0};
-									double specular[3] = {0, 0, 0};
-									
+								else if(objects[best_i]->kind == 2) // determine some necessary variables according to plane fields
+								{									
 									n[0] = objects[best_i]->plane.normal[0];
 									n[1] = objects[best_i]->plane.normal[1]; // sets normal to the closets object's (plane in this case) normal
 									n[2] = objects[best_i]->plane.normal[2];
@@ -941,27 +905,23 @@ void raycasting()
 									nv[2] = v[2] * -1;
 									
 
+									// passes in corresponding variables for diffuse and specular calculators, using the diffuse/specular vectors as output
 									diffuse_calculation(n, l, lights[j]->light.color, objects[best_i]->plane.diffuse_color, diffuse);
-									specular_calculation(n, l, lights[j]->light.color, objects[best_i]->plane.specular_color, nv, r, 20, specular);
+									specular_calculation(n, l, lights[j]->light.color, objects[best_i]->plane.specular_color, nv, r, 20, specular);																
+								}
 									
-									
-									// initializes object_direction vector
+									// initializes object_direction (from object to light) vector
 									double object_direction[3];
 									object_direction[0] = Rdn[0] * -1;
-									object_direction[1] = Rdn[1] * -1; // sets object_direction to Rdn vector scaled by -1
+									object_direction[1] = Rdn[1] * -1;
 									object_direction[2] = Rdn[2] * -1;
 									normalize(object_direction);
 									
-									// calculates fang and frad values
-									double fang_val = fang(lights[j], object_direction, lights[j]->light.theta);
+									double fang_val = fang(lights[j], object_direction, lights[j]->light.theta);									
 									double frad_val = frad(lights[j], distance_to_light);
-									
-									// applies calculated values to the color vector
 									color[0] += frad_val * fang_val * (diffuse[0] + specular[0]); 
 									color[1] += frad_val * fang_val * (diffuse[1] + specular[1]); 
 									color[2] += frad_val * fang_val * (diffuse[2] + specular[2]); 
-																	
-								}
 								
 							}
 												
@@ -1259,41 +1219,42 @@ double clamp(double value)
         return value;
 }
 
+// does radial attenutation calculations and returns value accordingly
 double frad(Object* light, double dl)
 {
 	// check for dl value being infinity?
 	if(light->light.radial_a2 == 0) // invalid a2 value?
 		light->light.radial_a2 = 1.0;
-	printf("frad call\n");
+		
 	double return_value = (1.0 / ((light->light.radial_a2 * sqr(dl)) + (light->light.radial_a1 * dl) + light->light.radial_a0));
 	
 	return return_value;
 }
 
+// does angular attenutation calculations and returns value accordingly
 double fang(Object* light, double direction[3], double theta)
 {
 	if(light->light.kind_light == 0) // not spot light so return 1
 		return 1.0;
-	printf("fang call\n");
+		
 	double v0_vl = (light->light.direction[0] * direction[0]) + (light->light.direction[1] * direction[1]) +  (light->light.direction[2] * direction[2]);
+	
 	if(v0_vl < cos(0.0173 * theta)) // .0173 * theta converts from degreest to radians for cos() function
 		return 0;
 		
 	return pow(v0_vl, light->light.angular_a0);
 }
 
-// potentially change output type in signature?
+// does diffuse color calculations and returns value accordingly
 void diffuse_calculation(double n[3], double l[3], double il[3], double kd[3], double* output)
 {
 	double n_l = (n[0] * l[0]) + (n[1] * l[1]) + (n[2] * l[2]);
 	// ambient constant would go here in the future
-	printf("n_l is: %lf\n", n_l);
     if (n_l > 0) 
 	{
         output[0] = (kd[0] * il[0]) * n_l;
         output[1] = (kd[1] * il[1]) * n_l;
         output[2] = (kd[2] * il[2]) * n_l;
-		printf("New diffuse should be:  [%lf %lf %lf]\n", output[0], output[1], output[2]);
     }
     else 
 	{
@@ -1303,10 +1264,12 @@ void diffuse_calculation(double n[3], double l[3], double il[3], double kd[3], d
     }
 }
 
+// does specular color calculations and returns value accordingly
 void specular_calculation(double n[3], double l[3], double il[3], double ks[3], double v[3], double r[3], double ns, double* output)
 {
     double n_l = (n[0] * l[0]) + (n[1] * l[1]) + (n[2] * l[2]);
 	double v_r = (v[0] * r[0]) + (v[1] * r[1]) + (v[2] * r[2]);
+	
     if (n_l > 0 && v_r > 0) 
 	{
         double vr_ns_power = pow(v_r, ns);
