@@ -417,7 +417,7 @@ void read_scene(char* filename)
 	  expect_c(json, ':');
 	  skip_ws(json);  
 	  if ((strcmp(key, "width") == 0) || 
-	      (strcmp(key, "height") == 0) || // evaluates if field is either a width/height/radius/radial-a2/radial-a1/radial-a0/angular-a0
+	      (strcmp(key, "height") == 0) || // evaluates if field is either a width/height/radius/radial-a2/radial-a1/radial-a0/angular-a0/theta
 	      (strcmp(key, "radius") == 0) ||
 		  (strcmp(key, "radial-a2") == 0) || 
 	      (strcmp(key, "radial-a1") == 0) ||
@@ -452,62 +452,62 @@ void read_scene(char* filename)
 		// REDO VALUE ERROR CHECKING IF NEEDED, REMOVE AT THE VERY LEAST
 		else if(strcmp(key, "radial-a2") == 0 && objects[i]-> kind == 3) // evaluates only if key is radial-a2 and current object is a light
 		{
-			if(value < 0) // error check to make sure a negative radius isn't read in from json file
+			if(value < 0) // error check to make sure a negative radial-a2 isn't read in from json file
 			{
 				fprintf(stderr, "Error: radial-a2 must be positive. Violation found on line number %d.\n", line);
 				exit(1);
 			}
 			objects[i]->light.radial_a2 = value;
-			light_rad2_read++; // increments error checking variable for sphere radius field being read
+			light_rad2_read++; // increments error checking variable for radial-a2 field being read
 		}
 		else if(strcmp(key, "radial-a1") == 0 && objects[i]-> kind == 3) // evaluates only if key is radial-a1 and current object is a light
 		{
-			if(value < 0) // error check to make sure a negative radius isn't read in from json file
+			if(value < 0) // error check to make sure a negative radial-a1 isn't read in from json file
 			{
 				fprintf(stderr, "Error: radial-a1 must be positive. Violation found on line number %d.\n", line);
 				exit(1);
 			}
 			objects[i]->light.radial_a1 = value;
-			light_rad1_read++; // increments error checking variable for sphere radius field being read
+			light_rad1_read++; // increments error checking variable for radial-a1 field being read
 		}
 		else if(strcmp(key, "radial-a0") == 0 && objects[i]-> kind == 3) // evaluates only if key is radial-a0 and current object is a light
 		{
-			if(value < 0) // error check to make sure a negative radius isn't read in from json file
+			if(value < 0) // error check to make sure a negative radial-a0 isn't read in from json file
 			{
 				fprintf(stderr, "Error: radial-a0 must be positive. Violation found on line number %d.\n", line);
 				exit(1);
 			}
 			objects[i]->light.radial_a0 = value;
-			light_rad0_read++; // increments error checking variable for sphere radius field being read
+			light_rad0_read++; // increments error checking variable for radial-a0 field being read
 		}
 		else if(strcmp(key, "angular-a0") == 0 && objects[i]-> kind == 3) // evaluates only if key is angular-a0 and current object is a light
 		{
-			if(value < 0) // error check to make sure a negative radius isn't read in from json file
+			if(value < 0) // error check to make sure a negative angular-a0 isn't read in from json file
 			{
 				fprintf(stderr, "Error: angular-a0 must be positive. Violation found on line number %d.\n", line);
 				exit(1);
 			}
 			objects[i]->light.angular_a0 = value;
-			light_ang0_read++; // increments error checking variable for sphere radius field being read
+			light_ang0_read++; // increments error checking variable for angular-a0 field being read
 		}
 		else if(strcmp(key, "theta") == 0 && objects[i]-> kind == 3) // evaluates only if key is angular-a0 and current object is a light
 		{
-			if(value < 0) // error check to make sure a negative radius isn't read in from json file
+			if(value < 0) // error check to make sure a negative theta isn't read in from json file
 			{
 				fprintf(stderr, "Error: theta must be positive. Violation found on line number %d.\n", line);
 				exit(1);
 			}
 			objects[i]->light.theta = value;
-			light_theta_read++; // increments error checking variable for sphere radius field being read
+			light_theta_read++; // increments error checking variable for theta field being read
 		}	
 
 		///
 		// REMEMBER TO POTENTIALLY REDO ERROR CHECKING HERE
 		///
 		
-		else // after key was identified as width/height/radius, object type is unknown so display an error
+		else // after key was identified as width/height/radius/radial-a2/radial-a1/radial-a0/angular-a0/theta, object type is unknown so display an error
 		{
-			fprintf(stderr, "Error: Only cameras should have width/height, spheres have radius, and lights have radial-a2/radial-a1/radial-a0/angular-a0. Violation found on line number %d.\n", line);
+			fprintf(stderr, "Error: Only cameras should have width/height, spheres have radius, and lights have radial-a2/radial-a1/radial-a0/angular-a0/theta. Violation found on line number %d.\n", line);
             exit(1);
 		}
 		
@@ -515,7 +515,7 @@ void read_scene(char* filename)
 	  else if ((strcmp(key, "color") == 0) ||
 		     (strcmp(key, "diffuse_color") == 0) ||
 		     (strcmp(key, "specular_color") == 0) ||
-		     (strcmp(key, "position") == 0) || // evaluates if field is either a color/position/normal
+		     (strcmp(key, "position") == 0) || // evaluates if field is either a color/diffuse_color/specular_color/position/normal/direction
 		     (strcmp(key, "normal") == 0) ||
 			 (strcmp(key, "direction") == 0))
 	  { 
@@ -527,7 +527,7 @@ void read_scene(char* filename)
 			{
 				if(value[j] < 0) // assuming color value must be less than 0
 				{
-					fprintf(stderr, "Error: Color values must not be less than 0. Violation found on line number %d.\n", line); // CHECK ERROR CHECKING ON THIS
+					fprintf(stderr, "Error: Light color values must not be less than 0. Violation found on line number %d.\n", line); // CHECK ERROR CHECKING ON THIS
 					exit(1);
 				}
 			}
@@ -544,7 +544,7 @@ void read_scene(char* filename)
 			{
 				if(value[j] < 0 || value[j] > 1) // assuming color value must be between 0 and 1 (inclusive) due to example json file given along with corresponding ppm output file indicating so
 				{
-					fprintf(stderr, "Error: Color values should be between 0 and 1 (inclusive). Violation found on line number %d.\n", line);
+					fprintf(stderr, "Error: Sphere and Plane color values should be between 0 and 1 (inclusive). Violation found on line number %d.\n", line);
 					exit(1);
 				}
 			}
@@ -570,7 +570,7 @@ void read_scene(char* filename)
 			{
 				if(value[j] < 0 || value[j] > 1) // assuming color value must be between 0 and 1 (inclusive) due to example json file given along with corresponding ppm output file indicating so
 				{
-					fprintf(stderr, "Error: Color values should be between 0 and 1 (inclusive). Violation found on line number %d.\n", line);
+					fprintf(stderr, "Error: Sphere and Plane color values should be between 0 and 1 (inclusive). Violation found on line number %d.\n", line);
 					exit(1);
 				}
 			}
@@ -686,6 +686,7 @@ void raycasting()
 		current_pixel.r = 0;
 		current_pixel.g = 0; // initializes current pixel RGB values to 0 (black)
 		current_pixel.b = 0;
+	
 		
 		// block of code to create/facilitate a new Object array which will store only light objects for later use
 		Object** lights;
@@ -772,37 +773,28 @@ void raycasting()
 					if (best_t > 0 && best_t != INFINITY) {
 						double Ron[3] = {0, 0, 0}; // Initializes new origin ray to the assumed 0, 0, 0 position
 						double Rdn[3] = {0, 0, 0}; // Initializes new direction of ray to 0, 0, 0 which will be changed
-							
-						// DO LIGHT CHECK HERE?
 						
 						Ron[0] = best_t * Rd[0] + Ro[0];
-						Ron[1] = best_t * Rd[1] + Ro[1];
+						Ron[1] = best_t * Rd[1] + Ro[1]; // sets Ron using previously calculated object intersection
 						Ron[2] = best_t * Rd[2] + Ro[2];
 						
-						for(int j =  0; lights[j] != 0; j+=1)
+						for(int j =  0; lights[j] != 0; j+=1) // new outer for loop which iterates for every light in the lights array
 						{							
 							Rdn[0] = lights[j]->light.position[0] - Ron[0];
-							Rdn[1] = lights[j]->light.position[1] - Ron[1];
+							Rdn[1] = lights[j]->light.position[1] - Ron[1]; // sets Rdn using current light's position and the previously calculated Ron vector
 							Rdn[2] = lights[j]->light.position[2] - Ron[2];
 							
-							double distance_to_light = sqrt(sqr(Rdn[0]) + sqr(Rdn[1]) + sqr(Rdn[2]));  // potentially move below normalize?
-							//double distance_to_light = sqrt(sqr(Ron[0]) + sqr(Ron[1]) + sqr(Ron[2]));
+							double distance_to_light = sqrt(sqr(Rdn[0]) + sqr(Rdn[1]) + sqr(Rdn[2]));  // calculates the distance to the light using the Rdn vector
+							normalize(Rdn);				
 							
 							
-							printf("Rdn before:  [%lf %lf %lf]\n", Rdn[0], Rdn[1], Rdn[2]);
-							normalize(Rdn);
-							printf("Rdn after:  [%lf %lf %lf]\n", Rdn[0], Rdn[1], Rdn[2]);
-							
-				
-							
-							double new_best_t = INFINITY;
-							int best_s = -1;
-							for(int k = 0; objects[k] != 0; k+=1)
+							double new_best_t = INFINITY; // creates new intersection t variable
+							int best_s = -1; // initializes variable to act as indication of "closest shadow object"
+							for(int k = 0; objects[k] != 0; k+=1) // iterates through objects
 							{
-								if(objects[best_i] == objects[k])
+								if(objects[best_i] == objects[k]) // checks to make sure that the object checked isn't the previously calculated closest object
 									continue;
-								//double new_t = 0;
-								double t = 0; 
+								double t = 0;  // sets t value to 0 before evaluating objects
 								
 								switch(objects[k]->kind) { // switch statement used to check object type and intersection information accordingly
 								case 0: // object is a camera so break
@@ -825,36 +817,22 @@ void raycasting()
 									fprintf(stderr, "Error: Unrecognized object.\n"); // Error in case siwtch doesn't evaluate as a known object but should never happen
 									exit(1);
 								}
-								/*if (t > distance_to_light) // might be best_new_t?
-								{
-									// set best_s = 0? or also reset new_best_t?
-									continue;
-								}*/
 								if (t > distance_to_light) // might be best_new_t?
 								{
 									// set best_s = 0? or also reset new_best_t?
 									continue;
 								}
-								if (t > 0 && t < new_best_t) // stores best_t if there's a dominant intersection. Also stores best_i to record current object index
+								if (t > 0 && t < new_best_t) // stores new_best_t if there's a dominant shadow intersection. Also stores best_s to record current object index
 								{
 									new_best_t = t; 
-									printf("A shadow was found.\n");
-									//exit(1);
 									best_s = k;
 								}
-								/*if (new_best_t > distance_to_light) // might be best_new_t?
-								{
-									// set best_s = 0? or also reset new_best_t?
-									continue;
-								}*/
-								
-								// IF NEW_BEST_T > DISTANCE_TO_LIGHT -> CONTINUE
 							}
-							if(best_s == -1) // no closest shadow 
-							{ // N L R V
-								printf("There's no shadow!\n");
+							if(best_s == -1) // no closest shadow was found since best_s was unmodified (would never be set to -1 otherwise)
+							{ 
 								if(objects[best_i]->kind == 1) // determine necessary variables according to sphere fields
 								{
+									// initializes necessary n, l, r, v, and nv vectors as well as diffuse and specular vectors
 									double n[3];
 									double l[3];
 									double r[3]; // reflection of l
@@ -864,46 +842,37 @@ void raycasting()
 									double specular[3] = {0, 0, 0};
 									
 									n[0] = Ron[0] - objects[best_i]->sphere.position[0];
-									n[1] = Ron[1] - objects[best_i]->sphere.position[1];
+									n[1] = Ron[1] - objects[best_i]->sphere.position[1]; // sets normal to the Ron vector minus the closest object's (sphere in this case) position
 									n[2] = Ron[2] - objects[best_i]->sphere.position[2];
 									
-									printf("n before:  [%lf %lf %lf]\n", n[0], n[1], n[2]);
 									normalize(n);
-									printf("n after:  [%lf %lf %lf]\n", n[0], n[1], n[2]);
 									
 									l[0] = Rdn[0];
-									l[1] = Rdn[1];
+									l[1] = Rdn[1]; // sets l vector to the Rdn vector
 									l[2] = Rdn[2];
 									
-									printf("l before:  [%lf %lf %lf]\n", l[0], l[1], l[2]);
 									normalize(l);
-									printf("l after:  [%lf %lf %lf]\n", l[0], l[1], l[2]);
 									
 									// calculating reflection variable
 									double temp_scalar = 2.0 * ((n[0]*l[0]) + (n[1]*l[1]) + (n[2]*l[2]));
 									double temp_vector[3];
 									temp_vector[0] = n[0] * temp_scalar;
 									temp_vector[1] = n[1] * temp_scalar;
-									temp_vector[2] = n[2] * temp_scalar;
-									//r[0] = l[0] - temp_vector[0];
-									//r[1] = l[1] - temp_vector[1];
-									//r[2] = l[2] - temp_vector[2];		
+									temp_vector[2] = n[2] * temp_scalar;	
 									r[0] = temp_vector[0] - l[0];
 									r[1] = temp_vector[1] - l[1];
 									r[2] = temp_vector[2] - l[2];					
-									//
+									// end of calculating reflection variable
 									
 									v[0] = Rd[0];
-									v[1] = Rd[1];
+									v[1] = Rd[1]; // sets v vector to the Rd vector
 									v[2] = Rd[2];
 									
 									nv[0] = v[0] * -1;
-									nv[1] = v[1] * -1;
+									nv[1] = v[1] * -1; // nv vector (v vector scaled by -1) to be passed into the specular_calculation function
 									nv[2] = v[2] * -1;
 									 
-									printf("Diffuse before:  [%lf %lf %lf]\n", diffuse[0], diffuse[1], diffuse[2]);
 									diffuse_calculation(n, l, lights[j]->light.color, objects[best_i]->sphere.diffuse_color, diffuse);
-									printf("Diffuse after:  [%lf %lf %lf]\n", diffuse[0], diffuse[1], diffuse[2]);
 									specular_calculation(n, l, lights[j]->light.color, objects[best_i]->sphere.specular_color, nv, r, 20, specular);
 									
 									
@@ -931,6 +900,7 @@ void raycasting()
 								}
 								else if(objects[best_i]->kind == 2) // determine necessary variables according to plane fields
 								{
+									// initializes necessary n, l, r, v, and nv vectors as well as diffuse and specular vectors
 									double n[3]; 
 									double l[3];
 									double r[3]; // reflection of l
@@ -940,79 +910,65 @@ void raycasting()
 									double specular[3] = {0, 0, 0};
 									
 									n[0] = objects[best_i]->plane.normal[0];
-									n[1] = objects[best_i]->plane.normal[1];
+									n[1] = objects[best_i]->plane.normal[1]; // sets normal to the closets object's (plane in this case) normal
 									n[2] = objects[best_i]->plane.normal[2];
 									
-									printf("n before:  [%lf %lf %lf]\n", n[0], n[1], n[2]);
 									normalize(n);
-									printf("n after:  [%lf %lf %lf]\n", n[0], n[1], n[2]);
 									
 									l[0] = Rdn[0];
-									l[1] = -Rdn[1];
+									l[1] = -Rdn[1]; // sets l vector to the Rdn vector but also inverts the y-coordinate, unlike what would be done for a plane's l vector
 									l[2] = Rdn[2];
 									
-									printf("l before:  [%lf %lf %lf]\n", l[0], l[1], l[2]);
 									normalize(l);
-									printf("l after:  [%lf %lf %lf]\n", l[0], l[1], l[2]);
 									
 									// calculating reflection variable
 									double temp_scalar = 2.0 * ((n[0]*l[0]) + (n[1]*l[1]) + (n[2]*l[2]));
 									double temp_vector[3];
 									temp_vector[0] = n[0] * temp_scalar;
 									temp_vector[1] = n[1] * temp_scalar;
-									temp_vector[2] = n[2] * temp_scalar;
-									//r[0] = l[0] - temp_vector[0];
-									//r[1] = l[1] - temp_vector[1];
-									//r[2] = l[2] - temp_vector[2];		
+									temp_vector[2] = n[2] * temp_scalar;	
 									r[0] = temp_vector[0] - l[0];
 									r[1] = temp_vector[1] - l[1];
-									r[2] = temp_vector[2] - l[2];								
-									//
+									r[2] = temp_vector[2] - l[2];					
+									// end of calculating reflection variable
 									
 									v[0] = Rd[0];
-									v[1] = Rd[1];
+									v[1] = Rd[1]; // sets v vector to the Rd vector
 									v[2] = Rd[2];
 									
 									nv[0] = v[0] * -1;
-									nv[1] = v[1] * -1;
+									nv[1] = v[1] * -1; // nv vector (v vector scaled by -1) to be passed into the specular_calculation function
 									nv[2] = v[2] * -1;
+									
 
 									diffuse_calculation(n, l, lights[j]->light.color, objects[best_i]->plane.diffuse_color, diffuse);
 									specular_calculation(n, l, lights[j]->light.color, objects[best_i]->plane.specular_color, nv, r, 20, specular);
 									
 									
-									/*diffuse[0] = objects[best_i]->plane.diffuse_color[0];
-									diffuse[1] = objects[best_i]->plane.diffuse_color[0];
-									diffuse[2] = objects[best_i]->plane.diffuse_color[0];
-									
-									specular[0] = objects[best_i]->plane.specular_color[0];
-									specular[1] = objects[best_i]->plane.specular_color[0];
-									specular[2] = objects[best_i]->plane.specular_color[0];
-									*/
+									// initializes object_direction vector
 									double object_direction[3];
 									object_direction[0] = Rdn[0] * -1;
-									object_direction[1] = Rdn[1] * -1;
+									object_direction[1] = Rdn[1] * -1; // sets object_direction to Rdn vector scaled by -1
 									object_direction[2] = Rdn[2] * -1;
 									normalize(object_direction);
 									
+									// calculates fang and frad values
 									double fang_val = fang(lights[j], object_direction, lights[j]->light.theta);
 									double frad_val = frad(lights[j], distance_to_light);
+									
+									// applies calculated values to the color vector
 									color[0] += frad_val * fang_val * (diffuse[0] + specular[0]); 
 									color[1] += frad_val * fang_val * (diffuse[1] + specular[1]); 
 									color[2] += frad_val * fang_val * (diffuse[2] + specular[2]); 
-									
-									
+																	
 								}
 								
 							}
-						
-						
-						
+												
 						}
-						// color is calculated
 						
 						current_pixel.r = (unsigned char)(255 * clamp(color[0]));
-						current_pixel.g = (unsigned char)(255 * clamp(color[1]));
+						current_pixel.g = (unsigned char)(255 * clamp(color[1])); // sets current pixel's color values based on calculated colors in color vector (clamped)
 						current_pixel.b = (unsigned char)(255 * clamp(color[2]));
 						*temp_ptr = current_pixel; // sets current image_data struct in temp_ptr to current_pixel colored from object 
 						temp_ptr++; // increments temp_ptr to point to next image_data struct in global buffer
@@ -1023,16 +979,15 @@ void raycasting()
 					}
 					else { // no dominant intersection found at current point so pixel is to be colored black
 						current_pixel.r = (unsigned char)(255 * clamp(color[0]));
-						current_pixel.g = (unsigned char)(255 * clamp(color[1])); // should all be 0
+						current_pixel.g = (unsigned char)(255 * clamp(color[1])); // should all be 0 
 						current_pixel.b = (unsigned char)(255 * clamp(color[2]));		
 						*temp_ptr = current_pixel;  // sets current image_data struct in temp_ptr to current_pixel colored from object 
 						temp_ptr++; // increments temp_ptr to point to next image_data struct in global buffer
 					}
 			}
 		}	
-
 		return;
-	}	
+}	
 
 // write_image_data function takes in the output_file_name to know where to write out to
 void write_image_data(char* output_file_name)
@@ -1290,7 +1245,6 @@ void print_objects(Object** objects)
 				fprintf(stderr, "Error: Unrecognized object.\n");
 				exit(1);
 			}
-
 	}
 }
 
