@@ -491,7 +491,7 @@ void read_scene(char* filename)
 		{
 			if(value < 0) // error check to make sure a negative theta isn't read in from json file
 			{
-				fprintf(stderr, "Error: theta must be positive. Violation found on line number %d.\n", line);
+				fprintf(stderr, "Error: theta must be greater than or equal to 0. Violation found on line number %d.\n", line);
 				exit(1);
 			}
 			objects[i]->light.theta = value;
@@ -1223,7 +1223,7 @@ double clamp(double value)
 double frad(Object* light, double dl)
 {
 	// check for dl value being infinity?
-	if(light->light.radial_a2 == 0) // invalid a2 value?
+	if(light->light.radial_a2 == 0) // invalid a2 value so change to 1 as default
 		light->light.radial_a2 = 1.0;
 		
 	double return_value = (1.0 / ((light->light.radial_a2 * sqr(dl)) + (light->light.radial_a1 * dl) + light->light.radial_a0));
@@ -1234,12 +1234,13 @@ double frad(Object* light, double dl)
 // does angular attenutation calculations and returns value accordingly
 double fang(Object* light, double direction[3], double theta)
 {
+	normalize(light->light.direction);
 	if(light->light.kind_light == 0) // not spot light so return 1
 		return 1.0;
 		
 	double v0_vl = (light->light.direction[0] * direction[0]) + (light->light.direction[1] * direction[1]) +  (light->light.direction[2] * direction[2]);
 	
-	if(v0_vl < cos(0.0173 * theta)) // .0173 * theta converts from degreest to radians for cos() function
+	if(v0_vl < cos(((theta / 180) * 3.14159))) // (theta / 180) * 3.14159 converts from degrees to radians for cos() function
 		return 0;
 		
 	return pow(v0_vl, light->light.angular_a0);
