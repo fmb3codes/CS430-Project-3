@@ -82,12 +82,10 @@ typedef struct {
   };
 } Object;
 
-// radial/angular attenuation functions placed after Object struct as they require it to be defined as a parameter
+// radial/angular attenuation function prototypes placed after Object struct as they require it to be defined as a parameter
 double frad(Object* light, double dl); // performs radial attenuation
 
 double fang(Object* light, double direction[3], double theta); // performs angular attenuation
-
-void print_objects(Object** objects); // testing helper function REMOVE?
 
 
 // header_data buffer which is intended to contain all relevant header information of ppm file
@@ -184,14 +182,9 @@ int main(int argc, char** argv)
   
 	read_scene(input_file); // parses json input file
 	
-	print_objects(objects);
-	
 	raycasting(); // executes raycasting based on information read in from json file in conjunction with the global image_buffer which handles the image pixels
  
 	write_image_data(output_file); // writes "colored" pixels to ppm file after raycasting
-	
-	// ACCOUNT FOR NO LIGHT IN JSON FILE?
-	// POTENTIALLY DO ERROR CHECKING ON RADIAL/etc VALUES
   
 	return 0;
 }
@@ -446,7 +439,6 @@ void read_scene(char* filename)
 			sphere_radius_read++; // increments error checking variable for sphere radius field being read
 		}
 		
-		// REDO VALUE ERROR CHECKING IF NEEDED, REMOVE AT THE VERY LEAST
 		else if(strcmp(key, "radial-a2") == 0 && objects[i]-> kind == 3) // evaluates only if key is radial-a2 and current object is a light
 		{
 			if(value < 0) // error check to make sure a negative radial-a2 isn't read in from json file
@@ -496,12 +488,7 @@ void read_scene(char* filename)
 			}
 			objects[i]->light.theta = value;
 			light_theta_read++; // increments error checking variable for theta field being read
-		}	
-
-		///
-		// REMEMBER TO POTENTIALLY REDO ERROR CHECKING HERE
-		///
-		
+		}			
 		else // after key was identified as width/height/radius/radial-a2/radial-a1/radial-a0/angular-a0/theta, object type is unknown so display an error
 		{
 			fprintf(stderr, "Error: Only cameras should have width/height, spheres have radius, and lights have radial-a2/radial-a1/radial-a0/angular-a0/theta. Violation found on line number %d.\n", line);
@@ -698,8 +685,6 @@ void raycasting()
 			}
 		}
 		lights[light_counter] == NULL;
-		
-		print_objects(lights); // testing code
 		// end of block of code for creating/filling new lights array
 		
 		
@@ -1015,7 +1000,7 @@ double sphere_intersection(double* Ro, double* Rd, double* C, double r)
 // function which takes in an origin ray, direction of the ray, position of the plane object, and normal of the plane object and determines if there's an intersection at the current point
 double plane_intersection(double* Ro, double* Rd, double* C, double* N)
 {	
-	normalize(N); // keep or remove?
+	normalize(N);
 	double Vd = ((N[0] * Rd[0]) + (N[1] * Rd[1]) + (N[2] * Rd[2]));
 	if(Vd == 0) // parallel ray so no intersection
 	{
@@ -1147,65 +1132,6 @@ void normalize(double* v)
 double sqr(double v) 
 {
   return v*v;
-}
-
-// helper function
-void print_objects(Object** objects)
-{
-	int i = 0;
-	while(objects[i] != NULL)
-	{
-			if(objects[i]->kind == 0)
-			{
-				printf("#%d object is a camera\n", i);
-				printf("Camera width is: %lf\n", objects[i]->camera.width);
-				printf("Camera height is: %lf\n", objects[i]->camera.height);
-				printf("-------------------------------------------------------\n");
-				i++;
-			}
-			else if(objects[i]->kind == 1)
-			{
-				printf("#%d object is a sphere\n", i);
-				printf("Sphere diffuse color is: [%lf, %lf, %lf]\n", objects[i]->sphere.diffuse_color[0], objects[i]->sphere.diffuse_color[1], objects[i]->sphere.diffuse_color[2]);
-				printf("Sphere specular color is: [%lf, %lf, %lf]\n", objects[i]->sphere.specular_color[0], objects[i]->sphere.specular_color[1], objects[i]->sphere.specular_color[2]);
-				printf("Sphere position is: [%lf, %lf, %lf]\n", objects[i]->sphere.position[0], objects[i]->sphere.position[1], objects[i]->sphere.position[2]);
-				printf("Sphere radius is: %lf\n", objects[i]->sphere.radius);
-				printf("-------------------------------------------------------\n");
-				i++;
-			}
-			else if(objects[i]->kind == 2)
-			{
-				printf("#%d object is a plane\n", i);
-				printf("Plane diffuse color is: [%lf, %lf, %lf]\n", objects[i]->plane.diffuse_color[0], objects[i]->plane.diffuse_color[1], objects[i]->plane.diffuse_color[2]);
-				printf("Plane specular color is: [%lf, %lf, %lf]\n", objects[i]->plane.specular_color[0], objects[i]->plane.specular_color[1], objects[i]->plane.specular_color[2]);
-				printf("Plane position is: [%lf, %lf, %lf]\n", objects[i]->plane.position[0], objects[i]->plane.position[1], objects[i]->plane.position[2]);
-				printf("Plane normal is: [%lf, %lf, %lf]\n", objects[i]->plane.normal[0], objects[i]->plane.normal[1], objects[i]->plane.normal[2]);
-				printf("-------------------------------------------------------\n");
-				i++;
-			}
-			else if(objects[i]->kind == 3)
-			{
-				if(objects[i]->light.kind_light == 0)
-					printf("#%d object is a point light\n", i);
-				else if(objects[i]->light.kind_light == 1)
-					printf("#%d object is a spot light\n", i);
-				printf("Light color is: [%lf, %lf, %lf]\n", objects[i]->light.color[0], objects[i]->light.color[1], objects[i]->light.color[2]);
-				printf("Light position is: [%lf, %lf, %lf]\n", objects[i]->light.position[0], objects[i]->light.position[1], objects[i]->light.position[2]);
-				printf("Light direction is: [%lf, %lf, %lf]\n", objects[i]->light.direction[0], objects[i]->light.direction[1], objects[i]->light.direction[2]);
-				printf("Light radial-a2 is: %lf\n", objects[i]->light.radial_a2);
-				printf("Light radial-a1 is: %lf\n", objects[i]->light.radial_a1);
-				printf("Light radial-a0 is: %lf\n", objects[i]->light.radial_a0);
-				printf("Light angular-a0 is: %lf\n", objects[i]->light.angular_a0);
-				printf("Light theta is: %lf\n", objects[i]->light.theta);
-				printf("-------------------------------------------------------\n");
-				i++;
-			}
-			else
-			{
-				fprintf(stderr, "Error: Unrecognized object.\n");
-				exit(1);
-			}
-	}
 }
 
 // clamping helper function to make sure color isn't outside of 0-1 range (inclusive)
