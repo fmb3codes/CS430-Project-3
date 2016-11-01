@@ -598,7 +598,7 @@ void read_scene(char* filename)
 			}
 			else // Evaluates if there is a mismatched object field with sphere/plane/light and position, but should never happen
 			{
-				fprintf(stderr, "Error: Mismatched object field, on line %d.\n", key, line);
+				fprintf(stderr, "Error: Mismatched object field \"%s\", on line %d.\n", key, line);
 				exit(1);
 			}
 		}
@@ -684,7 +684,7 @@ void raycasting()
 				lights[light_counter++] = objects[l];
 			}
 		}
-		lights[light_counter] == NULL;
+		lights[light_counter] = NULL;
 		// end of block of code for creating/filling new lights array
 		
 		
@@ -949,13 +949,13 @@ void write_image_data(char* output_file_name)
 	
 	// block of code which writes header information into the output file along with whitespaces accordingly
 	fprintf(fp, header_buffer->file_format); 
-	fprintf(fp, "\n");
+	fprintf(fp, "%s", "\n");
 	fprintf(fp, header_buffer->file_width);
-	fprintf(fp, " ");
+	fprintf(fp, "%s", " ");
 	fprintf(fp, header_buffer->file_height);
-	fprintf(fp, "\n");
+	fprintf(fp, "%s", "\n");
 	fprintf(fp, header_buffer->file_maxcolor);
-	fprintf(fp, "\n");
+	fprintf(fp, "%s", "\n");
 	
 	// Writing of P6 data (as recommended by professor) starts here
 	fclose(fp); // closes file after writing header information since P6 requires writing bytes
